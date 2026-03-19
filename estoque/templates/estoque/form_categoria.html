@@ -1,0 +1,38 @@
+{% extends base_template|default:"base.html" %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h3 class="mb-4">Cadastrar Nova Categoria</h3>
+
+        <form method="POST" class="card p-4 shadow-sm">
+            {% csrf_token %}
+
+            <div class="row">
+                {% for campo in form %}
+                <div class="col-12 mb-3">
+                    <label class="form-label fw-bold">{{ campo.label }}</label>
+                    {{ campo }}
+                    {% if campo.errors %}
+                    <div class="text-danger small mt-1">{{ campo.errors }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                
+                {% if request.GET.popup %}
+                    <button type="button" class="btn btn-secondary me-2" onclick="window.parent.document.querySelector('#modalIframe .btn-close').click();">Cancelar</button>
+                {% else %}
+                    <a href="{% url 'lista_categorias' %}" class="btn btn-secondary me-2">Cancelar</a>
+                {% endif %}
+                
+                <button type="submit" class="btn btn-success">
+                    Salvar Categoria
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

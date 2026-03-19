@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        {% if consumivel %}
+        <h3 class="mb-4">Editar Consumível: <span class="text-primary">{{ consumivel.nome }}</span></h3>
+        {% else %}
+        <h3 class="mb-4">Cadastrar Novo Consumível</h3>
+        {% endif %}
+
+        <form method="POST" class="card p-4 shadow-sm">
+            {% csrf_token %}
+
+            {% for campo in form %}
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">
+                    {{ campo.label }}
+                    {% if campo.field.required %}
+                    <span class="text-danger ms-1" title="Campo obrigatório">*</span>
+                    {% else %}
+                    <span class="text-muted fw-normal small ms-1"></span>
+                    {% endif %}
+                </label>
+                {{ campo }}
+
+                {% if campo.name == 'categoria' %}
+                <div class="text-end mt-1">
+                    <a href="{% url 'nova_categoria' %}" target="_blank" class="small text-decoration-none">+ Criar nova
+                        categoria</a>
+                </div>
+                {% endif %}
+                {% if campo.errors %}
+                <div class="text-danger small mt-1">{{ campo.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <div>
+                    {% if consumivel %}
+                    <a href="{% url 'excluir_consumivel' consumivel.id %}" class="btn btn-outline-danger">Excluir
+                        Consumível</a>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <a href="{% url 'lista_consumiveis' %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-success">
+                        {% if consumivel %}Salvar Alterações{% else %}Salvar Consumível{% endif %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

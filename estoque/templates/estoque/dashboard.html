@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<h2 class="mb-4">Visão Geral do Sistema</h2>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="card-title">Total de Itens</h6>
+                <h2 class="mb-0">{{ total_equipamentos }}</h2>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-dark bg-warning shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="card-title">Em Manutenção</h6>
+                <h2 class="mb-0">{{ equipamentos_manutencao }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="card-title">Itens de Consumo</h6>
+                <h2 class="mb-0">{{ total_consumiveis }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-secondary shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="card-title">Colaboradores</h6>
+                <h2 class="mb-0">{{ total_colaboradores }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white fw-bold">
+                ⚠️ Alertas de Estoque Baixo
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for item in alertas_estoque %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ item.nome }}
+                            <span class="badge bg-danger rounded-pill">Restam: {{ item.quantidade }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-success text-center py-3">
+                            ✅ Todos os estoques estão adequados.
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

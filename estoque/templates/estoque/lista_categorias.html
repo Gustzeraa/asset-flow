@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gerenciar Categorias</h2>
+    <a href="{% url 'nova_categoria' %}" class="btn btn-primary">+ Nova Categoria</a>
+</div>
+
+{% if messages %}
+<div class="row mb-3">
+    <div class="col-md-8 mx-auto">
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome da Categoria</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categorias %}
+                    <tr>
+                        <td class="fw-bold text-primary">{{ cat.nome }}</td>
+                        <td class="text-end">
+                            
+                            <form action="{% url 'excluir_categoria' cat.id %}" method="POST" class="d-inline" onsubmit="return confirm('Atenção: Tem certeza que deseja excluir a categoria {{ cat.nome }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                            </form>
+                            
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center py-4 text-muted">Nenhuma categoria cadastrada no sistema.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
