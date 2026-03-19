@@ -3,6 +3,7 @@ from django.db import models
 # Create your models here.
 class Colaborador(models.Model):
     nome = models.CharField(max_length=150)
+    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True, verbose_name="CPF")
     cargo = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     departamento = models.CharField(max_length=100)

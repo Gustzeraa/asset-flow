@@ -1,9 +1,14 @@
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from .forms import ColaboradorForm
 from .models import Colaborador
 from estoque.models import Equipamento
+import os
+from django.conf import settings
 
 @login_required
 def lista_colaboradores(request):
@@ -91,3 +96,31 @@ def excluir_colaborador(request, id):
         return redirect('lista_colaboradores')
         
     return render(request, 'estoque/confirmar_exclusao.html', {'item': colaborador, 'tipo': 'Colaborador'})
+
+@login_required
+def gerar_termo_pdf(request, id):
+    colaborador = get_object_or_404(Colaborador, id=id)
+    equipamentos = colaborador.equipamentos_responsavel.all()
+    
+    caminho_logo = os.path.join(settings.BASE_DIR, 'static', 'img', 'C:\\Users\\gh101\\Downloads\\ICTQ-04.png')
+
+    context = {
+        'colaborador': colaborador,
+        'equipamentos': equipamentos,
+        'caminho_logo': caminho_logo
+    }
+
+    template_path = 'rh/termo_pdf.html'
+    template = get_template(template_path)
+    html = template.render(context)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="Termo_Responsabilidade_{colaborador.nome}.pdf"'
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse('Tivemos um erro ao gerar o PDF: <pre>' + html + '</pre>')
+    
+    return response
+

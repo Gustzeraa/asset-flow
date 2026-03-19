@@ -27,22 +27,27 @@ cd asset-flow
 ```
 
 ### 2. Crie e ative o ambiente virtual
-
+```bash
 python -m venv .venv
 .venv\Scripts\activate
+```
 
 ### 3. Instale as dependências
-
+```bash
 pip install -r requirements.txt
+```
 
 ### 4. Configure o Banco de Dados
-
+```bash
 python manage.py migrate
+```
 
 ### 5. Crie um Superusuário (Admin)
-
+```bash
 python manage.py createsuperuser
+```
 
 ### 6. Inicie o Servidor
-
+```bash
 python manage.py runserver
+```

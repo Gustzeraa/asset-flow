@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Termo de Responsabilidade - {{ colaborador.nome }}</title>
+    <style>
+        @page {
+            size: a4 portrait;
+            margin: 2cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: underline;
+            text-transform: uppercase;
+        }
+        .content {
+            text-align: justify;
+        }
+        .regras {
+            margin-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .regras li {
+            margin-bottom: 8px;
+        }
+        .tabela-equipamentos {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+        .tabela-equipamentos th, .tabela-equipamentos td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        .tabela-equipamentos th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .assinaturas {
+            margin-top: 50px;
+            text-align: center;
+        }
+        .linha {
+            border-top: 1px solid #000;
+            width: 350px;
+            margin: 0 auto;
+            margin-bottom: 5px;
+        }
+        .devolucao-box {
+            margin-top: 40px;
+            border: 1px solid #000;
+            padding: 15px;
+            background-color: #fafafa;
+        }
+        .devolucao-box h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <table style="width: 100%; border: none; margin-bottom: 20px;">
+            <tr>
+                <td style="width: 25%; text-align: left; border: none;">
+                    <img src="{{ caminho_logo }}" style="width: 130px;" alt="Logo ICTQ">
+                </td>
+                <td style="width: 75%; text-align: center; border: none; vertical-align: middle;">
+                    <div class="title" style="font-size: 15px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">
+                        Termo de Responsabilidade pela Guarda e Uso de Equipamento
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="content">
+        <p>
+            Eu, <strong>{{ colaborador.nome }}</strong>, portador(a) do CPF nº <strong>{{ colaborador.cpf|default:"___.___.___-__" }}</strong>, 
+            contratado(a) em regime de Pessoa Jurídica pela empresa INSTITUTO DE CIÊNCIA, TECNOLOGIA E QUALIDADE INDUSTRIAL ME, CNPJ nº 10.564.067/0001-02, 
+            confirmo que recebi, a título de empréstimo, para meu uso exclusivo, conforme determinado na lei, os equipamentos especificados neste termo de responsabilidade, ficando ciente de que:
+        </p>
+
+        <ul class="regras" style="list-style-type: disc;">
+            <li>Em caso de dano, inutilização ou extravio do equipamento deverei comunicar imediatamente ao setor competente.</li>
+            <li>Terminando os serviços ou no caso de rescisão do contrato de trabalho, devolverei o equipamento completo e em perfeito estado de conservação, considerando o tempo do uso do mesmo, ao setor competente.</li>
+        </ul>
+
+        <p>Estando os equipamentos em minha posse, seguirei o Guia de Conservação, Zelo e Boa Conduta no Uso de Equipamentos Empresariais, conforme descrito abaixo:</p>
+
+        <ul class="regras">
+            <li><strong>Manuseio Cauteloso:</strong> Ao utilizar os equipamentos da empresa, adote uma abordagem cuidadosa e delicada. Evite quedas, choques e movimentos bruscos que possam comprometer a integridade física dos dispositivos.</li>
+            <li><strong>Limpeza Regular:</strong> Realize a limpeza regular dos equipamentos, utilizando materiais adequados e seguindo as instruções dos fabricantes.</li>
+            <li><strong>Ambiente Adequado:</strong> Posicione os equipamentos em ambientes apropriados, longe de fontes de calor excessivo, umidade ou poeira intensa.</li>
+            <li><strong>Atualização e Manutenção Programada:</strong> Mantenha os softwares e sistemas dos equipamentos atualizados, e em se tratando de manutenção que exija maior perícia deverá entrar em contato com a equipe de TI da instituição antes de qualquer atualização/manutenção.</li>
+            <li><strong>Segurança da Informação:</strong> Respeite as diretrizes de segurança da informação da empresa e da LGPD. Evite instalar softwares não autorizados, compartilhar senhas ou acessar sites e informações confidenciais sem permissão.</li>
+        </ul>
+
+        <p>O comprometimento com a integridade e eficiência dos equipamentos não apenas contribui para um ambiente de trabalho mais produtivo, mas também reflete o respeito pela propriedade da empresa e seu compromisso com a excelência operacional.</p>
+
+        <h4 style="margin-bottom: 5px;">DESCRIÇÃO DO(S) EQUIPAMENTO(S):</h4>
+        <table class="tabela-equipamentos">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Patrimônio</th>
+                    <th style="width: 70%;">Equipamento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in equipamentos %}
+                <tr>
+                    <td>{{ item.num_patrimonio }}</td>
+                    <td>{{ item.nome }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" style="text-align: center;">Nenhum equipamento registrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="assinaturas">
+        <p>Anápolis, ____ / ____ / ________</p>
+        <br><br>
+        <div class="linha"></div>
+        <p>Ciente, <strong>{{ colaborador.nome }}</strong></p>
+    </div>
+
+    <div class="devolucao-box">
+        <h4>Devolução:</h4>
+        <p>Atestamos que o bem foi devolvido nas seguintes condições:</p>
+        <p>( &nbsp; ) Em perfeito estado</p>
+        <p>( &nbsp; ) Apresentando defeito</p>
+        <p>( &nbsp; ) Faltando peças/acessórios.</p>
+        
+        <br><br>
+        <p>____ / ____ / ________ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ___________________________________________________________</p>
+        <p style="font-size: 11px; text-align: right; margin-top: -10px;">(Data / assinatura / nome do responsável pelo recebimento)</p>
+    </div>
+
+</body>
+</html>

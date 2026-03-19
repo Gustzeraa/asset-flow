@@ -6,4 +6,5 @@ urlpatterns = [
     path('<int:id>/editar/', views.editar_colaborador, name='editar_colaborador'),
     path('<int:id>/excluir/', views.excluir_colaborador, name='excluir_colaborador'),
     path('novo/', views.novo_colaborador, name='novo_colaborador'),
+    path('colaboradores/<int:id>/termo-pdf/', views.gerar_termo_pdf, name='gerar_termo_pdf'),
 ]
