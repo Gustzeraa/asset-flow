@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Almoxarifado e Suprimentos</h2>
+    <a href="{% url 'novo_consumivel' %}" class="btn btn-primary">+ Novo Item</a>
+</div>
+
+<form method="GET" class="d-flex mb-4 shadow-sm gap-2">
+    <input type="text" name="q" class="form-control" placeholder="Pesquisar por nome do item..." value="{{ request.GET.q }}">
+    <button type="submit" class="btn btn-dark px-4">Buscar</button>
+    {% if request.GET.q %}
+        <a href="?" class="btn btn-outline-danger">Limpar</a>
+    {% endif %}
+</form>
+
+<div class="table-responsive shadow-sm bg-white rounded border">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Item</th>
+                <th class="text-center">Estoque Atual</th>
+                <th class="text-center">Mínimo</th>
+                <th class="text-center">Status</th>
+                <th class="text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in consumiveis %}
+            <tr>
+                <td class="fw-bold text-primary">{{ item.nome }}</td>
+                <td class="text-center fs-5 fw-bold">
+                    {{ item.quantidade_atual }} 
+                    <span class="fs-6 fw-normal text-muted">{{ item.get_unidade_medida_display }}</span>
+                </td>
+                <td class="text-center text-muted">{{ item.estoque_minimo }}</td>
+                <td class="text-center">
+                    {% if item.quantidade_atual <= 0 %}
+                        <span class="badge bg-danger">Esgotado</span>
+                    {% elif item.quantidade_atual <= item.estoque_minimo %}
+                        <span class="badge bg-warning text-dark">Estoque Baixo</span>
+                    {% else %}
+                        <span class="badge bg-success">Adequado</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-success fw-bold me-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalMovimentar{{ item.id }}">
+                        📦 Movimentar
+                    </button>
+                    <a href="{% url 'editar_consumivel' item.id %}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                    <a href="{% url 'excluir_consumivel' item.id %}" class="btn btn-sm btn-outline-danger">Excluir</a>
+                </td>
+            </tr>
+
+            <div class="modal fade text-start" id="modalMovimentar{{ item.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        
+                        <form action="{% url 'registrar_movimentacao' item.id %}" method="POST">
+                            {% csrf_token %}
+                            
+                            <div class="modal-header bg-light">
+                                <h5 class="modal-title fw-bold">📦 Registrar Movimentação</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            
+                            <div class="modal-body">
+                                <h4 class="text-primary mb-1">{{ item.nome }}</h4>
+                                <p class="text-muted mb-4 border-bottom pb-2">
+                                    Saldo atual na prateleira: <strong class="text-dark">{{ item.quantidade_atual }} {{ item.get_unidade_medida_display }}</strong>
+                                </p>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo de Movimentação *</label>
+                                    <select name="tipo" class="form-select border-secondary" required>
+                                        <option value="">Selecione...</option>
+                                        <option value="entrada">🟢 ENTRADA (Compra/Reposição)</option>
+                                        <option value="saida">🔴 SAÍDA (Consumo/Uso)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Quantidade *</label>
+                                    <input type="number" name="quantidade" class="form-control border-secondary" min="1" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Responsável / Destino</label>
+                                    <input type="text" name="responsavel" class="form-control border-secondary" placeholder="Ex: Copa 2º Andar, RH, Manutenção...">
+                                    <div class="form-text">Quem pediu ou para onde vai o item?</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Observação</label>
+                                    <input type="text" name="observacao" class="form-control border-secondary" placeholder="Ex: Chamado #1234 (Opcional)">
+                                </div>
+                            </div>
+                            
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-success fw-bold">Confirmar Movimentação</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-5 text-muted">
+                    <h5>Nenhum item cadastrado no almoxarifado.</h5>
+                    <p>Clique em "+ Novo Item" para começar a controlar os suprimentos.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.lista_consumiveis, name='lista_consumiveis'),
+    path('novo/', views.novo_consumivel, name='novo_consumivel'),
+    path('editar/<int:id>/', views.editar_consumivel, name='editar_consumivel'),
+    path('excluir/<int:id>/', views.excluir_consumivel, name='excluir_consumivel'),
+    path('movimentar/<int:id>/', views.registrar_movimentacao, name='registrar_movimentacao'),
+]

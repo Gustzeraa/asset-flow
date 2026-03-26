@@ -34,7 +34,7 @@ class Equipamento(models.Model):
     descricao = models.TextField(null=True, blank=True, verbose_name="Descrição")
     status = models.CharField(max_length=20, 
                               choices=STATUS_CHOICES, 
-                              default='estoque', 
+                              default='disponivel', 
                               verbose_name="Status do Equipamento"
                               )
     #Aqui vamos conectar o equipamento com o colaborador que está utilizando ele, caso haja um
@@ -56,28 +56,6 @@ class Equipamento(models.Model):
         return f"{self.nome} - {self.get_status_display()} - {self.num_patrimonio}"
 
 
-class Consumivel(models.Model):
-    nome = models.CharField(max_length=150, verbose_name="Item")
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT)
-    # Controle numérico de estoque
-    quantidade = models.IntegerField(
-        default=0, 
-        verbose_name="Quantidade em Estoque"
-    )
-    unidade_medida = models.CharField(
-        max_length=50, 
-        verbose_name="Unidade de Medida",
-        help_text="Ex: Pacote, Caixa, Unidade, Litro, Kg"
-    )
-    # Campo extra para alertas de compra no futuro
-    estoque_minimo = models.IntegerField(
-        default=1, 
-        verbose_name="Estoque Mínimo", 
-        help_text="Quantidade para alertar necessidade de compra"
-    )
-
-    def __str__(self):
-        return f"{self.nome} - {self.quantidade} {self.unidade_medida}(s)"
 
 
 

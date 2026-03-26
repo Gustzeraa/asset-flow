@@ -6,29 +6,18 @@
     <a href="{% url 'novo_colaborador' %}" class="btn btn-primary">+ Novo Colaborador</a>
 </div>
 
-{% if messages %}
-<div class="row mb-3">
-    <div class="col-md-12">
-        {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
 <form method="GET" class="d-flex mb-4 shadow-sm">
-    <input type="text" name="q" class="form-control me-2" placeholder="Pesquisar por nome, cargo ou departamento..." value="{{ request.GET.q }}">
+    <input type="text" name="q" class="form-control me-2" placeholder="Pesquisar por nome, cargo ou departamento..."
+        value="{{ request.GET.q }}">
     <button type="submit" class="btn btn-dark px-4">Buscar</button>
     {% if request.GET.q %}
-        <a href="?" class="btn btn-outline-danger ms-2">Limpar</a>
+    <a href="?" class="btn btn-outline-danger ms-2">Limpar</a>
     {% endif %}
 </form>
 
 <div class="table-responsive">
     <table class="table table-hover table-bordered align-middle">
-        
+
         <thead class="table-light">
             <tr>
                 <th>Nome</th>
@@ -40,33 +29,40 @@
                 <th class="text-center">Ações</th>
             </tr>
         </thead>
-        
+
         <tbody>
             {% for colaborador in colaboradores %}
             <tr>
-                <td><strong>{{ colaborador.nome }}</strong></td>
-                
+                <td>
+                    <a href="{% url 'editar_colaborador' colaborador.id %}" class="text-primary text-decoration-none fw-bold"
+                        title="Clique para editar este colaborador">
+                        {{ colaborador.nome }}
+                    </a>
+                </td>
+
                 <td>{{ colaborador.cpf|default:"-" }}</td>
-                
+
                 <td>{{ colaborador.cargo|default:"-" }}</td>
-                
+
                 <td>{{ colaborador.departamento|default:"-" }}</td>
-                
+
                 <td>{{ colaborador.email }}</td>
-                
+
                 <td class="text-center">
                     {% if colaborador.ativo %}
-                        <span class="badge bg-success">Ativo</span>
+                    <span class="badge bg-success">Ativo</span>
                     {% else %}
-                        <span class="badge bg-danger">Desligado</span>
+                    <span class="badge bg-danger">Desligado</span>
                     {% endif %}
                 </td>
-                
+
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalColaborador{{ colaborador.id }}">
+                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                        data-bs-target="#modalColaborador{{ colaborador.id }}">
                         Detalhes
                     </button>
-                    <a href="{% url 'editar_colaborador' colaborador.id %}" class="btn btn-sm btn-outline-primary ms-1">Editar</a>
+                    <a href="{% url 'editar_colaborador' colaborador.id %}"
+                        class="btn btn-sm btn-outline-primary ms-1">Editar</a>
                 </td>
             </tr>
             {% empty %}
@@ -75,7 +71,7 @@
             </tr>
             {% endfor %}
         </tbody>
-        
+
     </table>
 </div>
 
@@ -83,12 +79,12 @@
 <div class="modal fade text-start" id="modalColaborador{{ colaborador.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            
+
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold">Detalhes do Colaborador</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body">
                 <div class="row mb-4">
                     <div class="col-md-8">
@@ -99,9 +95,9 @@
                     </div>
                     <div class="col-md-4 text-end">
                         {% if colaborador.ativo %}
-                            <span class="badge bg-success fs-6">Ativo</span>
+                        <span class="badge bg-success fs-6">Ativo</span>
                         {% else %}
-                            <span class="badge bg-danger fs-6">Desligado</span>
+                        <span class="badge bg-danger fs-6">Desligado</span>
                         {% endif %}
                     </div>
                 </div>
@@ -122,27 +118,29 @@
                                 <td><span class="text-muted">{{ item.num_patrimonio }}</span></td>
                                 <td>{{ item.nome }}</td>
                                 <td>
-                                    {% if item.status == 'em_uso' %} <span class="badge bg-success">Em Uso</span>
-                                    {% elif item.status == 'disponivel' %} <span class="badge bg-primary">Em Estoque</span>
+                                    {% if item.status == 'em_uso' %} <span class="badge bg-primary">Em Uso</span>
+                                    {% elif item.status == 'disponivel' %} <span class="badge bg-success">Em
+                                        Estoque</span>
                                     {% else %} <span class="badge bg-warning text-dark">Manutenção</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="3" class="text-center text-muted py-3">Nenhum ativo vinculado a este colaborador.</td>
+                                <td colspan="3" class="text-center text-muted py-3">Nenhum ativo vinculado a este
+                                    colaborador.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
-            
+
             <div class="modal-footer justify-content-between">
                 <div>
                     {% if colaborador.equipamentos_responsavel.exists %}
                     <a href="{% url 'gerar_termo_pdf' colaborador.id %}" target="_blank" class="btn btn-success">
-                        📄 Gerar Termo PDF
+                        📄 Termo de Responsabilidade
                     </a>
                     {% endif %}
                 </div>

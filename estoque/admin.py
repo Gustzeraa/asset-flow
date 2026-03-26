@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Categoria, Equipamento, Consumivel
+from .models import Categoria, Equipamento
 
 # A Categoria pode continuar simples, pois tem poucos campos
 admin.site.register(Categoria)
@@ -17,11 +17,3 @@ class EquipamentoAdmin(admin.ModelAdmin):
     
     # Dica extra: Permite editar o status direto na tela de lista, sem precisar abrir o item
     list_editable = ('status',)
-
-@admin.register(Consumivel)
-class ConsumivelAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'categoria', 'quantidade', 'unidade_medida')
-    list_filter = ('categoria',)
-    search_fields = ('nome',)
-    # Permite atualizar a quantidade rapidamente pela lista
-    list_editable = ('quantidade',)

@@ -123,4 +123,3 @@ def gerar_termo_pdf(request, id):
         return HttpResponse('Tivemos um erro ao gerar o PDF: <pre>' + html + '</pre>')
     
     return response
-

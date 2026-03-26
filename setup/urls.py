@@ -25,7 +25,8 @@ urlpatterns = [
     # Rotas de autenticação (login, logout, reset de senha)
     path('contas/', include('django.contrib.auth.urls')), 
     path('rh/', include('rh.urls')),
-    path('', include('estoque.urls')), 
+    path('', include('estoque.urls')),
+    path('almoxarifado/', include('consumiveis.urls')), 
 ]
 
 if settings.DEBUG:

@@ -2,18 +2,61 @@
 
 {% block conteudo %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Lista de Inventário</h2>
-    <div>
-        <a href="{% url 'exportar_inventario' %}" class="btn btn-success me-2">📊 Exportar para Excel</a>
+    <h2 class="mb-0">Lista de Ativos</h2>
+    <div class="d-flex gap-2">
+
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                ⚙️ Ações
+            </button>
+            <ul class="dropdown-menu shadow-sm border-0">
+                <li><a class="dropdown-item py-2" href="{% url 'exportar_inventario' %}">📊 Exportar para Excel</a></li>
+                <li>
+                    <a class="dropdown-item py-2 cursor-pointer" href="#" data-bs-toggle="modal"
+                        data-bs-target="#modalImportar">
+                        📥 Importar Planilha (CSV)
+                    </a>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <button class="dropdown-item py-2 text-primary fw-bold btn-acao-lote" type="button"
+                        data-bs-toggle="modal" data-bs-target="#modalTransferirLote" disabled>
+                        🔄 Transferir Selecionados (<span class="contadorSelecionados">0</span>)
+                    </button>
+                </li>
+                <li>
+                    <button class="dropdown-item py-2 text-warning fw-bold btn-acao-lote" type="button"
+                        data-bs-toggle="modal" data-bs-target="#modalAlterarCategoriaLote" disabled>
+                        🏷️ Alterar Categoria (<span class="contadorSelecionados">0</span>)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
         <a href="{% url 'novo_equipamento' %}" class="btn btn-primary">+ Novo Item</a>
     </div>
 </div>
 
-<form method="GET" class="d-flex mb-4 shadow-sm">
-    <input type="text" name="q" class="form-control me-2" placeholder="Pesquisar por nome, patrimônio, local, responsável..." value="{{ request.GET.q }}">
-    <button type="submit" class="btn btn-dark px-4">Buscar</button>
-    {% if request.GET.q %}
-        <a href="?" class="btn btn-outline-danger ms-2">Limpar</a>
+<form method="GET" class="d-flex mb-4 shadow-sm gap-2">
+    <input type="text" name="q" class="form-control" placeholder="Pesquisar por nome, patrimônio, local..."
+        value="{{ request.GET.q }}">
+
+    <select name="categoria" class="form-select" style="max-width: 250px;">
+        <option value="">Todas as Categorias</option>
+        {% for cat in categorias %}
+        <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
+            {{ cat.nome }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-dark px-4">Filtrar</button>
+
+    {% if request.GET.q or request.GET.categoria %}
+    <a href="?" class="btn btn-outline-danger">Limpar</a>
     {% endif %}
 </form>
 
@@ -21,17 +64,21 @@
     <table class="table table-hover table-bordered align-middle">
         <thead class="table-light">
             <tr>
+                <th style="width: 40px;" class="text-center">
+                    <input type="checkbox" class="form-check-input border-secondary" id="checkMestre">
+                </th>
                 <th>Nome</th>
                 <th>Patrimônio</th>
                 <th>
-                    <a href="?q={{ request.GET.q|default_if_none:'' }}&ordenar={% if ordem_atual == 'data' %}-data{% else %}data{% endif %}" class="text-dark text-decoration-none d-flex align-items-center">
+                    <a href="?q={{ request.GET.q|default_if_none:'' }}&ordenar={% if ordem_atual == 'data' %}-data{% else %}data{% endif %}"
+                        class="text-dark text-decoration-none d-flex align-items-center">
                         Data
                         {% if ordem_atual == 'data' %} <span class="ms-1 small">🔼</span>
                         {% elif ordem_atual == '-data' %} <span class="ms-1 small">🔽</span>
                         {% else %} <span class="ms-1 small text-muted opacity-50">↕️</span> {% endif %}
                     </a>
                 </th>
-                <th>Tipo</th>
+                <th>Categoria</th>
                 <th>Local</th>
                 <th>Status</th>
                 <th>Responsável</th>
@@ -41,30 +88,42 @@
         <tbody>
             {% for item in equipamentos %}
             <tr>
-                <td><strong>{{ item.nome }}</strong></td>
+                <td class="text-center">
+                    <input type="checkbox" class="form-check-input border-secondary check-item" value="{{ item.id }}">
+                </td>
+                <td>
+                    <a href="{% url 'editar_equipamento' item.id %}" class="text-primary text-decoration-none fw-bold"
+                        title="Clique para editar este item">
+                        {{ item.nome }}
+                    </a>
+                </td>
                 <td><span class="text-muted">{{ item.num_patrimonio }}</span></td>
                 <td>{{ item.data|date:"d/m/Y"|default:"-" }}</td>
-                <td>{{ item.tipo|default:"-" }}</td>
+                <td>
+                    <span class="badge bg-light text-dark border border-secondary">
+                        {{ item.categoria.nome|default:"Sem Categoria" }}
+                    </span>
+                </td>
                 <td>{{ item.local|default:"-" }}</td>
                 <td>
-                    {% if item.status == 'em_uso' %} <span class="badge bg-success">Em Uso</span>
-                    {% elif item.status == 'disponivel' %} <span class="badge bg-primary">Em Estoque</span>
+                    {% if item.status == 'em_uso' %} <span class="badge bg-primary">Em Uso</span>
+                    {% elif item.status == 'disponivel' %} <span class="badge bg-success">Em Estoque</span>
                     {% elif item.status == 'descartado' %} <span class="badge bg-danger">Descartado</span>
                     {% else %} <span class="badge bg-warning text-dark">Manutenção</span>
                     {% endif %}
                 </td>
                 <td>{{ item.responsavel.nome|default:"Não atribuído" }}</td>
-                
+
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalDetalhes{{ item.id }}">
+                    <button type="button" class="btn btn-sm btn-info text-white fw-bold" data-bs-toggle="modal"
+                        data-bs-target="#modalDetalhes{{ item.id }}">
                         Detalhes
                     </button>
-                    <a href="{% url 'editar_equipamento' item.id %}" class="btn btn-sm btn-outline-primary ms-1">Editar</a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" class="text-center py-4 text-muted">Nenhum item encontrado no inventário.</td>
+                <td colspan="9" class="text-center py-4 text-muted">Nenhum item encontrado no inventário.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -75,51 +134,72 @@
 <div class="modal fade text-start" id="modalDetalhes{{ item.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold">Detalhes do Inventário</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-5 text-center mb-3">
                         {% if item.foto %}
-                            <img src="{{ item.foto.url }}" alt="{{ item.nome }}" class="img-fluid rounded shadow border" style="max-height: 250px; object-fit: cover;">
+                        <img src="{{ item.foto.url }}" alt="{{ item.nome }}" class="img-fluid rounded shadow border"
+                            style="max-height: 250px; object-fit: cover;">
                         {% else %}
-                            <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="height: 200px;">
-                                <span class="text-muted">📷 Sem foto</span>
-                            </div>
+                        <div class="bg-light border rounded d-flex align-items-center justify-content-center"
+                            style="height: 200px;">
+                            <span class="text-muted">📷 Sem foto</span>
+                        </div>
                         {% endif %}
                         <h4 class="mt-3 text-primary">{{ item.nome }}</h4>
                         <p class="text-muted fw-bold">{{ item.num_patrimonio }}</p>
                     </div>
-
                     <div class="col-md-7">
                         <table class="table table-sm table-borderless">
                             <tbody>
-                                <tr><th class="text-muted" style="width: 40%;">Categoria:</th><td>{{ item.categoria.nome|default:"-" }}</td></tr>
-                                <tr><th class="text-muted">Tipo:</th><td>{{ item.tipo|default:"-" }}</td></tr>
-                                <tr><th class="text-muted">Local:</th><td>{{ item.local|default:"-" }}</td></tr>
-                                <tr><th class="text-muted">Departamento:</th><td>{{ item.departamento|default:"-" }}</td></tr>
+                                <tr>
+                                    <th class="text-muted" style="width: 40%;">Categoria:</th>
+                                    <td>{{ item.categoria.nome|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Tipo:</th>
+                                    <td>{{ item.tipo|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Local:</th>
+                                    <td>{{ item.local|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Departamento:</th>
+                                    <td>{{ item.departamento|default:"-" }}</td>
+                                </tr>
                                 <tr>
                                     <th class="text-muted">Status:</th>
                                     <td>
-                                        {% if item.status == 'em_uso' %} <span class="badge bg-success">Em Uso</span>
-                                        {% elif item.status == 'disponivel' %} <span class="badge bg-primary">Em Estoque</span>
-                                        {% elif item.status == 'descartado' %} <span class="badge bg-danger">Descartado</span>
+                                        {% if item.status == 'em_uso' %} <span class="badge bg-primary">Em Uso</span>
+                                        {% elif item.status == 'disponivel' %} <span class="badge bg-success">Em
+                                            Estoque</span>
+                                        {% elif item.status == 'descartado' %} <span
+                                            class="badge bg-danger">Descartado</span>
                                         {% else %} <span class="badge bg-warning text-dark">Manutenção</span>
                                         {% endif %}
                                     </td>
                                 </tr>
-                                <tr><th class="text-muted">Responsável:</th><td>{{ item.responsavel.nome|default:"Não atribuído" }}</td></tr>
-                                <tr><th class="text-muted">Validador:</th><td>{{ item.validador.nome|default:"-" }}</td></tr>
-                                <tr><th class="text-muted">Data Registro:</th><td>{{ item.data|date:"d/m/Y"|default:"-" }}</td></tr>
+                                <tr>
+                                    <th class="text-muted">Responsável:</th>
+                                    <td>{{ item.responsavel.nome|default:"Não atribuído" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Validador:</th>
+                                    <td>{{ item.validador.nome|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">Data Registro:</th>
+                                    <td>{{ item.data|date:"d/m/Y"|default:"-" }}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-
                 <div class="row mt-3 border-top pt-3">
                     <div class="col-md-6">
                         <h6 class="text-muted">Descrição</h6>
@@ -131,7 +211,6 @@
                     </div>
                 </div>
             </div>
-            
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 <a href="{% url 'editar_equipamento' item.id %}" class="btn btn-primary">Editar Item</a>
@@ -140,5 +219,161 @@
     </div>
 </div>
 {% endfor %}
+
+<div class="modal fade" id="modalImportar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{% url 'importar_planilha' %}" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">📥 Importar Equipamentos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body text-start">
+                    <div class="alert alert-info small mb-4">
+                        <p class="mb-2">
+                            <strong>Formato Exigido:</strong> O arquivo precisa ser um <b>CSV</b> separado por ponto e
+                            vírgula (;).
+                        </p>
+
+                        <div class="d-grid gap-2 mt-3 mb-2">
+                            <a href="{% url 'baixar_modelo_csv' %}"
+                                class="btn btn-sm btn-outline-info fw-bold text-dark border-info bg-white">
+                                ⬇️ Baixar Planilha de Exemplo (Modelo)
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 border-top pt-3">
+                        <label class="form-label fw-bold">Selecione o arquivo CSV preenchido:</label>
+                        <input class="form-control" type="file" name="arquivo_csv" accept=".csv" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Processar Planilha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTransferirLote" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{% url 'transferir_lote' %}" method="POST">
+                {% csrf_token %}
+
+                <input type="hidden" name="equipamentos_ids" class="inputEquipamentosIds">
+
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">🔄 Transferência em Lote</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body text-start">
+                    <p class="mb-3 text-muted">Você está prestes a transferir <strong
+                            class="contadorSelecionados">0</strong> equipamento(s).</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Transferir todos para o usuário:</label>
+                        <select name="novo_responsavel" class="form-select">
+                            <option value="">📦 Devolver para o Estoque da TI (Limpar Responsável)</option>
+                            {% for colab in colaboradores %}
+                            <option value="{{ colab.id }}">👤 {{ colab.nome }} ({{ colab.departamento|default:'Sem
+                                depto' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Transferência</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAlterarCategoriaLote" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{% url 'alterar_categoria_lote' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="equipamentos_ids" class="inputEquipamentosIds">
+
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">🏷️ Alterar Categoria em Lote</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body text-start">
+                    <p class="mb-3 text-muted">Alterando a categoria de <strong class="contadorSelecionados">0</strong>
+                        equipamento(s).</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Selecione a nova Categoria:</label>
+                        <select name="nova_categoria" class="form-select" required>
+                            <option value="">Selecione uma categoria...</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">Confirmar Alteração</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkMestre = document.getElementById('checkMestre');
+        const checkItems = document.querySelectorAll('.check-item');
+
+        // Pegando todos os botões, contadores e inputs ocultos de uma vez!
+        const botoesLote = document.querySelectorAll('.btn-acao-lote');
+        const contadores = document.querySelectorAll('.contadorSelecionados');
+        const inputsEquipamentosIds = document.querySelectorAll('.inputEquipamentosIds');
+
+        function atualizarSelecao() {
+            let selecionados = [];
+            checkItems.forEach(box => {
+                if (box.checked) selecionados.push(box.value);
+            });
+
+            let qtd = selecionados.length;
+
+            // Atualiza os números em TODOS os lugares que têm contador
+            contadores.forEach(span => span.textContent = qtd);
+
+            // Preenche o campo oculto em TODOS os modais
+            let idsString = selecionados.join(',');
+            inputsEquipamentosIds.forEach(input => input.value = idsString);
+
+            // Ativa ou desativa TODOS os botões de lote
+            botoesLote.forEach(btn => btn.disabled = (qtd === 0));
+
+            checkMestre.checked = (qtd === checkItems.length && qtd > 0);
+        }
+
+        checkMestre.addEventListener('change', function () {
+            checkItems.forEach(box => box.checked = this.checked);
+            atualizarSelecao();
+        });
+
+        checkItems.forEach(box => {
+            box.addEventListener('change', atualizarSelecao);
+        });
+    });
+</script>
 
 {% endblock %}
