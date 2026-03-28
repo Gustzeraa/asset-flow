@@ -1,4 +1,5 @@
 from django.db import models
+from rh.models import Colaborador
 
 # Create your models here.
 class Consumivel(models.Model):
@@ -26,13 +27,17 @@ class MovimentacaoConsumivel(models.Model):
         ('saida', 'Saída (Consumo/Uso)'),
     )
     
-    consumivel = models.ForeignKey(Consumivel, on_delete=models.CASCADE, related_name='movimentacoes')
+    consumivel = models.ForeignKey('Consumivel', on_delete=models.CASCADE, related_name='movimentacoes')
     tipo = models.CharField(max_length=10, choices=TIPOS)
     quantidade = models.IntegerField()
     data = models.DateTimeField(auto_now_add=True)
     
-    # Opcional: Quem pegou ou quem registrou
-    responsavel = models.CharField(max_length=100, blank=True, help_text="Para onde foi ou quem pediu?")
+    # 1. Responsável agora puxa direto da tabela de colaboradores!
+    responsavel = models.ForeignKey(Colaborador, on_delete=models.SET_NULL, null=True, blank=True, help_text="Quem solicitou ou retirou?")
+    
+    # 2. Destino fica livre para digitação
+    destino = models.CharField(max_length=100, blank=True, help_text="Para onde vai? Ex: Copa 2º Andar, Departamento X")
+    
     observacao = models.CharField(max_length=255, blank=True)
 
     def __str__(self):

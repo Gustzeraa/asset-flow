@@ -48,7 +48,6 @@
                         📦 Movimentar
                     </button>
                     <a href="{% url 'editar_consumivel' item.id %}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
-                    <a href="{% url 'excluir_consumivel' item.id %}" class="btn btn-sm btn-outline-danger">Excluir</a>
                 </td>
             </tr>
 
@@ -85,9 +84,18 @@
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Responsável / Destino</label>
-                                    <input type="text" name="responsavel" class="form-control border-secondary" placeholder="Ex: Copa 2º Andar, RH, Manutenção...">
-                                    <div class="form-text">Quem pediu ou para onde vai o item?</div>
+                                    <label class="form-label fw-bold">Responsável (Quem pediu?)</label>
+                                    <select name="responsavel" class="form-select border-secondary">
+                                        <option value="">Selecione o colaborador...</option>
+                                        {% for colab in colaboradores %}
+                                            <option value="{{ colab.id }}">{{ colab.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Destino / Local</label>
+                                    <input type="text" name="destino" class="form-control border-secondary" placeholder="Ex: Copa 2º Andar, Departamento X">
                                 </div>
 
                                 <div class="mb-3">

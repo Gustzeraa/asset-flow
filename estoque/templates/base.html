@@ -109,9 +109,25 @@
                     </a>
                 </li>
                 <li class="nav-item mb-1">
-                    <a href="{% url 'lista_consumiveis' %}" class="nav-link">
-                        ☕ <span class="nav-text ms-2">Consumíveis</span>
+                    <a href="#menuConsumiveis" data-bs-toggle="collapse" class="nav-link d-flex align-items-center" aria-expanded="false">
+                        ☕ <span class="nav-text ms-2 flex-grow-1">Almoxarifado</span>
+                        <span class="nav-text small ms-auto">▼</span> 
                     </a>
+                    
+                    <div class="collapse" id="menuConsumiveis">
+                        <ul class="nav flex-column ms-3 border-start border-secondary ps-2 mt-1">
+                            <li class="nav-item mb-1">
+                                <a href="{% url 'lista_consumiveis' %}" class="nav-link py-1" style="color: rgba(255,255,255,.6);">
+                                    📦 <span class="nav-text ms-1">Estoque Atual</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'historico_movimentacoes' %}" class="nav-link py-1" style="color: rgba(255,255,255,.6);">
+                                    📖 <span class="nav-text ms-1">Histórico</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
                 <li class="nav-item mb-1">
                     <a href="{% url 'lista_colaboradores' %}" class="nav-link">

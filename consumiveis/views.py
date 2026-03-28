@@ -4,22 +4,25 @@ from django.contrib import messages
 from django.db.models import Q
 from .models import Consumivel, MovimentacaoConsumivel
 from .forms import ConsumivelForm, MovimentacaoForm
+from rh.models import Colaborador
 
 @login_required
 def lista_consumiveis(request):
     busca = request.GET.get('q')
     consumiveis = Consumivel.objects.all().order_by('nome')
     
+    # Buscamos todos os colaboradores ativos
+    colaboradores = Colaborador.objects.filter(ativo=True).order_by('nome')
+    
     if busca:
-        # Tiramos a categoria daqui, pois esse model não usa mais isso!
         consumiveis = consumiveis.filter(Q(nome__icontains=busca))
         
-    # Mandamos o formulário de movimentação vazio para a tela, 
     form_movimentacao = MovimentacaoForm()
         
     return render(request, 'consumiveis/lista_consumiveis.html', {
         'consumiveis': consumiveis,
-        'form_movimentacao': form_movimentacao
+        'form_movimentacao': form_movimentacao,
+        'colaboradores': colaboradores # <-- Enviamos para o HTML aqui!
     })
 
 @login_required
@@ -95,3 +98,11 @@ def registrar_movimentacao(request, id):
             messages.error(request, 'Erro ao registrar movimentação. Verifique os dados.')
             
     return redirect('lista_consumiveis')
+
+@login_required
+def historico_movimentacoes(request):
+    # Puxa tudo, ordenando pela data mais recente primeiro (o sinal de 'menos' faz isso)
+    movimentacoes = MovimentacaoConsumivel.objects.all().order_by('-data')
+    
+    return render(request, 'consumiveis/historico.html', {'movimentacoes': movimentacoes})
+

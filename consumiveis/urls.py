@@ -7,4 +7,5 @@ urlpatterns = [
     path('editar/<int:id>/', views.editar_consumivel, name='editar_consumivel'),
     path('excluir/<int:id>/', views.excluir_consumivel, name='excluir_consumivel'),
     path('movimentar/<int:id>/', views.registrar_movimentacao, name='registrar_movimentacao'),
+    path('historico/', views.historico_movimentacoes, name='historico_movimentacoes'),
 ]
