@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0 text-dark fw-bold">🗑️ Lixeira do Sistema</h2>
+        <p class="text-muted">Itens removidos temporariamente. Eles não aparecem no Dashboard.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Tipo</th>
+                        <th>Nome do Item</th>
+                        <th>Detalhes</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td class="ps-4">
+                            <span class="badge bg-{{ item.cor }} bg-opacity-10 text-{{ item.cor }} border border-{{ item.cor }} border-opacity-25 px-2 py-1">
+                                {{ item.badge }}
+                            </span>
+                        </td>
+                        <td class="fw-bold">{{ item.nome }}</td>
+                        <td class="text-muted small">{{ item.detalhe }}</td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'restaurar_item' item.tipo item.id %}" class="btn btn-sm btn-outline-success fw-bold me-1" title="Devolver ao Estoque">
+                                ↺ Restaurar
+                            </a>
+                            <a href="{% url 'excluir_permanente' item.tipo item.id %}" class="btn btn-sm btn-outline-danger fw-bold" title="Excluir Definitivamente">
+                                🗑️ Excluir
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <span class="fs-1 d-block mb-3">✨</span>
+                            A lixeira está vazia.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

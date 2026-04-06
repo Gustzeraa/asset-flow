@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
@@ -13,7 +14,7 @@ from django.conf import settings
 @login_required
 def lista_colaboradores(request):
     busca = request.GET.get('q')
-    colaboradores = Colaborador.objects.all()
+    colaboradores = Colaborador.objects.filter(excluido=False)
     
     if busca:
         # Busca por nome, email, departamento ou cargo
@@ -79,23 +80,16 @@ def editar_colaborador(request, id):
 
 @login_required
 def excluir_colaborador(request, id):
-    # Importação segura para garantir que as mensagens funcionem
-    from django.contrib import messages
-    from django.db.models import ProtectedError
-
     colaborador = get_object_or_404(Colaborador, id=id)
     
-    # Se o usuário confirmou na tela de exclusão (POST)
     if request.method == 'POST':
-        try:
-            colaborador.delete()
-            messages.success(request, f'Colaborador "{colaborador.nome}" excluído com sucesso!')
-        except ProtectedError:
-            messages.error(request, f'Ação bloqueada: O colaborador "{colaborador.nome}" não pode ser excluído pois possui equipamentos vinculados a ele.')
-            
-        return redirect('lista_colaboradores')
+        colaborador.excluido = True # Move para a lixeira!
+        colaborador.save()
+        messages.warning(request, f'Colaborador "{colaborador.nome}" movido para a lixeira.')
+        return redirect('lista_colaboradores') # Ajuste para o nome da sua url de lista
         
-    return render(request, 'estoque/confirmar_exclusao.html', {'item': colaborador, 'tipo': 'Colaborador'})
+    # Podemos reaproveitar aquela tela amarela bonita que fizemos!
+    return render(request, 'consumiveis/confirmar_exclusao.html', {'item': colaborador})
 
 @login_required
 def gerar_termo_pdf(request, id):
@@ -123,3 +117,23 @@ def gerar_termo_pdf(request, id):
         return HttpResponse('Tivemos um erro ao gerar o PDF: <pre>' + html + '</pre>')
     
     return response
+
+@login_required
+def lixeira_em_lote_colaboradores(request):
+    if request.method == 'POST':
+        # Pega a string de IDs ("1,2,5")
+        ids_texto = request.POST.get('colaboradores_ids', '')
+        
+        if ids_texto:
+            # Quebra a string em uma lista de números: ['1', '2', '5']
+            lista_ids = ids_texto.split(',')
+            
+            # Move todos para a lixeira de uma vez
+            Colaborador.objects.filter(id__in=lista_ids).update(excluido=True)
+            
+            messages.warning(request, f'{len(lista_ids)} colaborador(es) movido(s) para a lixeira.')
+        else:
+            messages.error(request, 'Nenhum colaborador foi selecionado.')
+            
+    # Certifique-se de que o nome da URL de redirecionamento está correto
+    return redirect('lista_colaboradores')

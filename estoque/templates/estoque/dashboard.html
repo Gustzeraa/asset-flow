@@ -1,91 +1,156 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-<h2 class="mb-4 text-primary fw-bold">Visão Geral do Sistema</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0 text-primary fw-bold">Visão Executiva</h2>
+        <p class="text-muted">Panorama geral do patrimônio e suprimentos</p>
+    </div>
+</div>
 
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
-        <div class="card text-white bg-success shadow-sm h-100">
+        <div class="card border-0 shadow-sm border-start border-success border-4 h-100 py-2">
             <div class="card-body">
-                <h6 class="card-title text-uppercase opacity-75">Disponíveis (Estoque)</h6>
-                <h2 class="mb-0 fw-bold">{{ equipamentos_disponiveis }}</h2>
+                <h6 class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 0.8rem;">Disponíveis (Estoque)</h6>
+                <h2 class="mb-0 fw-bold text-success">{{ equipamentos_disponiveis }}</h2>
             </div>
         </div>
     </div>
-    
     <div class="col-md-3 mb-3">
-        <div class="card text-white bg-primary shadow-sm h-100">
+        <div class="card border-0 shadow-sm border-start border-primary border-4 h-100 py-2">
             <div class="card-body">
-                <h6 class="card-title text-uppercase opacity-75">Em Uso (Alocados)</h6>
-                <h2 class="mb-0 fw-bold">{{ equipamentos_uso }}</h2>
+                <h6 class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 0.8rem;">Em Uso (Alocados)</h6>
+                <h2 class="mb-0 fw-bold text-primary">{{ equipamentos_uso }}</h2>
             </div>
         </div>
     </div>
-
     <div class="col-md-3 mb-3">
-        <div class="card text-dark bg-warning shadow-sm h-100">
+        <div class="card border-0 shadow-sm border-start border-warning border-4 h-100 py-2">
             <div class="card-body">
-                <h6 class="card-title text-uppercase opacity-75">Em Manutenção</h6>
-                <h2 class="mb-0 fw-bold">{{ equipamentos_manutencao }}</h2>
+                <h6 class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 0.8rem;">Em Manutenção</h6>
+                <h2 class="mb-0 fw-bold text-warning">{{ equipamentos_manutencao }}</h2>
             </div>
         </div>
     </div>
-
     <div class="col-md-3 mb-3">
-        <div class="card text-white bg-dark shadow-sm h-100">
+        <div class="card border-0 shadow-sm border-start border-dark border-4 h-100 py-2">
             <div class="card-body">
-                <h6 class="card-title text-uppercase opacity-75">Colaboradores Ativos</h6>
-                <h2 class="mb-0 fw-bold">{{ total_colaboradores }}</h2>
+                <h6 class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 0.8rem;">Colaboradores Ativos</h6>
+                <h2 class="mb-0 fw-bold text-dark">{{ total_colaboradores }}</h2>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8 mb-3">
-        <div class="card shadow-sm border-danger h-100">
-            <div class="card-header bg-danger text-white fw-bold">
-                ⚠️ Alertas de Estoque Baixo
+<div class="row mb-4">
+    
+    <div class="col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold text-dark mb-0">📊 Distribuição do Patrimônio</h5>
+                <small class="text-muted">Proporção do status atual dos equipamentos</small>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body d-flex justify-content-center align-items-center" style="position: relative; height: 320px;">
+                <canvas id="graficoEquipamentos"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card border-0 shadow-sm border-top border-danger border-4 h-100">
+            <div class="card-header bg-white pt-4 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold text-danger mb-0">⚠️ Ação Necessária (Compras)</h5>
+                    <small class="text-muted">Suprimentos abaixo do estoque mínimo</small>
+                </div>
+            </div>
+            <div class="card-body p-0" style="max-height: 320px; overflow-y: auto;">
                 <ul class="list-group list-group-flush">
                     {% for item in alertas_estoque %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
                             <div>
-                                <strong>{{ item.nome }}</strong>
-                                <br>
-                                <small class="text-muted">Mínimo exigido: {{ item.estoque_minimo }} {{ item.unidade_medida }}</small>
+                                <strong class="text-dark fs-5">{{ item.nome }}</strong><br>
+                                <small class="text-muted">Mínimo exigido: {{ item.estoque_minimo }}</small>
                             </div>
-                            <span class="badge bg-danger rounded-pill fs-6">Restam: {{ item.quantidade }}</span>
+                            <span class="badge bg-danger rounded-pill fs-6 px-3 py-2 shadow-sm">
+                                Restam: {{ item.quantidade_atual }}
+                            </span>
                         </li>
                     {% empty %}
-                        <li class="list-group-item text-success text-center py-4 fw-bold">
-                            ✅ Todos os estoques estão adequados.
+                        <li class="list-group-item text-center py-5 text-muted border-0">
+                            <span class="fs-1 d-block mb-3">✅</span>
+                            <strong class="fs-5 text-success">Estoque Adequado</strong><br>
+                            Nenhum item requer reposição imediata.
                         </li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
+    
+</div>
 
-    <div class="col-md-4 mb-3">
-        <div class="card shadow-sm border-secondary h-100">
-            <div class="card-header bg-secondary text-white fw-bold">
-                📊 Resumo do Inventário
-            </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        Total de Equipamentos
-                        <span class="badge bg-secondary rounded-pill fs-6">{{ total_equipamentos }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        Total de Consumíveis
-                        <span class="badge bg-secondary rounded-pill fs-6">{{ total_consumiveis }}</span>
-                    </li>
-                </ul>
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body d-flex justify-content-around py-4">
+                <div class="text-center">
+                    <span class="text-muted d-block small fw-bold text-uppercase mb-1">Total de Equipamentos Registrados</span>
+                    <span class="fs-3 fw-bold text-dark">{{ total_equipamentos }}</span>
+                </div>
+                <div class="border-end border-secondary border-opacity-25"></div>
+                <div class="text-center">
+                    <span class="text-muted d-block small fw-bold text-uppercase mb-1">Tipos de Consumíveis Cadastrados</span>
+                    <span class="fs-3 fw-bold text-dark">{{ total_consumiveis }}</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('graficoEquipamentos').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Disponível', 'Em Uso', 'Em Manutenção'],
+                datasets: [{
+                    // O parseInt e as aspas resolvem o erro visual do seu editor de código!
+                    data: [
+                        parseInt("{{ equipamentos_disponiveis|default:'0' }}"),
+                        parseInt("{{ equipamentos_uso|default:'0' }}"),
+                        parseInt("{{ equipamentos_manutencao|default:'0' }}")
+                    ],
+                    backgroundColor: [
+                        '#198754', // Verde Success
+                        '#0d6efd', // Azul Primary
+                        '#ffc107'  // Amarelo Warning
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%', // Deixa a rosca mais fina e elegante
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true, // Troca os quadrados da legenda por bolinhas
+                            font: { size: 14, family: "'Segoe UI', Roboto, sans-serif" }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -51,6 +51,7 @@ class Equipamento(models.Model):
         blank=True, 
         verbose_name="Foto do Equipamento"
     )
+    excluido = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.nome} - {self.get_status_display()} - {self.num_patrimonio}"

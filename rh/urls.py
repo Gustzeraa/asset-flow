@@ -7,4 +7,5 @@ urlpatterns = [
     path('<int:id>/excluir/', views.excluir_colaborador, name='excluir_colaborador'),
     path('novo/', views.novo_colaborador, name='novo_colaborador'),
     path('colaboradores/<int:id>/termo-pdf/', views.gerar_termo_pdf, name='gerar_termo_pdf'),
+    path('colaboradores/lote/lixeira/', views.lixeira_em_lote_colaboradores, name='lixeira_em_lote_colaboradores'),
 ]

@@ -19,5 +19,9 @@ urlpatterns = [
     path('categorias/excluir/<int:id>/', views.excluir_categoria, name='excluir_categoria'),
     path('equipamentos/importar/', views.importar_planilha, name='importar_planilha'),
     path('equipamentos/importar/modelo/', views.baixar_modelo_csv, name='baixar_modelo_csv'),
+    path('lixeira/', views.lixeira, name='lixeira'),
+    path('lixeira/restaurar/<str:tipo>/<int:id>/', views.restaurar_item, name='restaurar_item'),
+    path('lixeira/excluir-permanente/<str:tipo>/<int:id>/', views.excluir_permanente, name='excluir_permanente'),
+    path('equipamentos/lote/lixeira/', views.lixeira_em_lote_equipamentos, name='lixeira_em_lote_equipamentos'),
     
 ]

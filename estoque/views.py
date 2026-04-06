@@ -15,13 +15,17 @@ from consumiveis.models import Consumivel
 def lista_equipamentos(request):
     busca = request.GET.get('q')
     ordenar = request.GET.get('ordenar') 
-    categoria_id = request.GET.get('categoria') # <-- 1. CAPTURAMOS O NOVO FILTRO
+    categoria_id = request.GET.get('categoria')
     
-    equipamentos = Equipamento.objects.all()
+    # 1. Capturamos as novas datas
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    
+    equipamentos = Equipamento.objects.filter(excluido=False)
     colaboradores = Colaborador.objects.filter(ativo=True).order_by('nome')
     categorias = Categoria.objects.all().order_by('nome')
     
-    # 2. Primeiro fazemos o filtro da busca de texto (se houver)
+    # Filtro de Busca em Texto
     if busca:
         equipamentos = equipamentos.filter(
             Q(nome__icontains=busca) | 
@@ -31,24 +35,30 @@ def lista_equipamentos(request):
             Q(responsavel__nome__icontains=busca)
         )
 
-    # 3. Depois aplicamos o filtro EXATO da Categoria (se o usuário escolheu no dropdown) <-- NOVO BLOCO
+    # Filtro de Categoria
     if categoria_id:
         equipamentos = equipamentos.filter(categoria_id=categoria_id)
         
-    # 4. Por fim, aplicamos a ordenação
+    # 2. NOVOS Filtros de Data!
+    if data_inicio:
+        equipamentos = equipamentos.filter(data__gte=data_inicio) # Maior ou igual
+    if data_fim:
+        equipamentos = equipamentos.filter(data__lte=data_fim)    # Menor ou igual
+        
+    # Ordenação
     if ordenar == 'data':
-        equipamentos = equipamentos.order_by('data') # Crescente (Mais antigos primeiro)
+        equipamentos = equipamentos.order_by('data')
     elif ordenar == '-data':
-        equipamentos = equipamentos.order_by('-data') # Decrescente (Mais novos primeiro)
+        equipamentos = equipamentos.order_by('-data')
     else:
-        equipamentos = equipamentos.order_by('-id') # Padrão: Últimos cadastrados primeiro
+        equipamentos = equipamentos.order_by('-id')
         
     context = {
         'equipamentos': equipamentos,
         'ordem_atual': ordenar,
         'colaboradores': colaboradores,
         'categorias': categorias,
-        'categoria_selecionada': categoria_id, # Enviamos para o HTML saber qual deixar 'selected'
+        'categoria_selecionada': categoria_id,
     }
     return render(request, 'estoque/lista_equipamentos.html', context)
 
@@ -147,7 +157,9 @@ def alterar_categoria_lote(request):
 def excluir_equipamento(request, id):
     equipamento = get_object_or_404(Equipamento, id=id)
     if request.method == 'POST':
-        equipamento.delete()
+        equipamento.excluido = True
+        equipamento.save()
+        messages.warning(request, f'Equipamento "{equipamento.nome}" movido para a lixeira.')
         return redirect('lista_equipamentos')
     return render(request, 'estoque/confirmar_exclusao.html', {'item': equipamento})
 
@@ -380,3 +392,81 @@ def baixar_modelo_csv(request):
     
     return response
 
+@login_required
+def lixeira(request):
+    equipamentos_excluidos = Equipamento.objects.filter(excluido=True)
+    consumiveis_excluidos = Consumivel.objects.filter(excluido=True)
+    colaboradores_excluidos = Colaborador.objects.filter(excluido=True) # <-- Novo!
+    
+    itens_lixeira = []
+    
+    for eq in equipamentos_excluidos:
+        itens_lixeira.append({
+            'id': eq.id, 'nome': eq.nome, 'detalhe': f"Patrimônio: {eq.num_patrimonio}",
+            'tipo': 'equipamento', 'badge': '📦 Equipamento', 'cor': 'primary'
+        })
+        
+    for con in consumiveis_excluidos:
+        itens_lixeira.append({
+            'id': con.id, 'nome': con.nome, 'detalhe': "Item de Almoxarifado",
+            'tipo': 'consumivel', 'badge': '☕ Consumível', 'cor': 'secondary'
+        })
+        
+    # <-- Injetando os colaboradores na lista unificada! -->
+    for col in colaboradores_excluidos:
+        itens_lixeira.append({
+            'id': col.id, 'nome': col.nome, 'detalhe': "Colaborador / Usuário",
+            'tipo': 'colaborador', 'badge': '👤 Colaborador', 'cor': 'info'
+        })
+        
+    return render(request, 'estoque/lixeira.html', {'itens': itens_lixeira})
+
+@login_required
+def restaurar_item(request, tipo, id):
+    if tipo == 'consumivel':
+        item = get_object_or_404(Consumivel, id=id)
+    elif tipo == 'colaborador': # <-- Novo!
+        item = get_object_or_404(Colaborador, id=id)
+    else:
+        item = get_object_or_404(Equipamento, id=id)
+        
+    item.excluido = False
+    item.save()
+    messages.success(request, f'"{item.nome}" restaurado com sucesso!')
+    return redirect('lixeira')
+
+@login_required
+def excluir_permanente(request, tipo, id):
+    if tipo == 'consumivel':
+        item = get_object_or_404(Consumivel, id=id)
+    elif tipo == 'colaborador': # <-- Novo!
+        item = get_object_or_404(Colaborador, id=id)
+    else:
+        item = get_object_or_404(Equipamento, id=id)
+        
+    if request.method == 'POST':
+        nome_item = item.nome
+        item.delete() 
+        messages.error(request, f'O item "{nome_item}" foi apagado permanentemente.')
+        return redirect('lixeira')
+        
+    return render(request, 'estoque/confirmar_exclusao_permanente.html', {'item': item, 'tipo': tipo})
+
+@login_required
+def lixeira_em_lote_equipamentos(request):
+    if request.method == 'POST':
+        # Pega a string de IDs ("1,2,5")
+        ids_texto = request.POST.get('equipamentos_ids', '')
+        
+        if ids_texto:
+            # Quebra a string em uma lista de números: ['1', '2', '5']
+            lista_ids = ids_texto.split(',')
+            
+            # Move todos para a lixeira em uma tacada só
+            Equipamento.objects.filter(id__in=lista_ids).update(excluido=True)
+            
+            messages.warning(request, f'{len(lista_ids)} equipamento(s) movido(s) para a lixeira.')
+        else:
+            messages.error(request, 'Nenhum equipamento foi selecionado.')
+            
+    return redirect('lista_equipamentos')

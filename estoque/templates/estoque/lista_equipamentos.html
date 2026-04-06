@@ -24,13 +24,19 @@
                 <li>
                     <button class="dropdown-item py-2 text-primary fw-bold btn-acao-lote" type="button"
                         data-bs-toggle="modal" data-bs-target="#modalTransferirLote" disabled>
-                        🔄 Transferir Selecionados (<span class="contadorSelecionados">0</span>)
+                        🔄 Transferir Item (<span class="contadorSelecionados">0</span>)
                     </button>
                 </li>
                 <li>
                     <button class="dropdown-item py-2 text-warning fw-bold btn-acao-lote" type="button"
                         data-bs-toggle="modal" data-bs-target="#modalAlterarCategoriaLote" disabled>
                         🏷️ Alterar Categoria (<span class="contadorSelecionados">0</span>)
+                    </button>
+                </li>
+                <li>
+                    <button class="dropdown-item py-2 text-danger fw-bold btn-acao-lote" type="button"
+                        data-bs-toggle="modal" data-bs-target="#modalLixeiraLote" disabled>
+                        🗑️ Mover para Lixeira (<span class="contadorSelecionados">0</span>)
                     </button>
                 </li>
             </ul>
@@ -40,23 +46,48 @@
     </div>
 </div>
 
-<form method="GET" class="d-flex mb-4 shadow-sm gap-2">
-    <input type="text" name="q" class="form-control" placeholder="Pesquisar por nome, patrimônio, local..."
-        value="{{ request.GET.q }}">
+<form method="GET" class="card card-body bg-light border-secondary border-opacity-25 shadow-sm mb-4">
+    <div class="row g-2 align-items-end">
+        
+        <div class="col-md-4">
+            <label class="form-label small fw-bold text-muted mb-1">Busca Geral</label>
+            <input type="text" name="q" class="form-control" placeholder="Nome, patrimônio, local..." value="{{ request.GET.q }}">
+        </div>
+        
+        <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted mb-1">Categoria</label>
+            <select name="categoria" class="form-select">
+                <option value="">Todas as Categorias</option>
+                {% for cat in categorias %}
+                <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
+                    {{ cat.nome }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted mb-1">Data Inicial</label>
+            <input type="date" name="data_inicio" class="form-control" value="{{ request.GET.data_inicio }}">
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted mb-1">Data Final</label>
+            <input type="date" name="data_fim" class="form-control" value="{{ request.GET.data_fim }}">
+        </div>
+        
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-dark w-100 fw-bold" title="Aplicar Filtros">🔎</button>
+        </div>
+        
+    </div>
 
-    <select name="categoria" class="form-select" style="max-width: 250px;">
-        <option value="">Todas as Categorias</option>
-        {% for cat in categorias %}
-        <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
-            {{ cat.nome }}
-        </option>
-        {% endfor %}
-    </select>
-
-    <button type="submit" class="btn btn-dark px-4">Filtrar</button>
-
-    {% if request.GET.q or request.GET.categoria %}
-    <a href="?" class="btn btn-outline-danger">Limpar</a>
+    {% if request.GET.q or request.GET.categoria or request.GET.data_inicio or request.GET.data_fim %}
+    <div class="row mt-2">
+        <div class="col-12 text-end">
+            <a href="?" class="btn btn-sm btn-outline-danger">✖ Limpar Filtros</a>
+        </div>
+    </div>
     {% endif %}
 </form>
 
@@ -282,8 +313,7 @@
                         <select name="novo_responsavel" class="form-select">
                             <option value="">📦 Devolver para o Estoque da TI (Limpar Responsável)</option>
                             {% for colab in colaboradores %}
-                            <option value="{{ colab.id }}">👤 {{ colab.nome }} ({{ colab.departamento|default:'Sem
-                                depto' }})</option>
+                            <option value="{{ colab.id }}">👤 {{ colab.nome }} {{ colab.departamento|default:'Sem depto' }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -328,6 +358,36 @@
                 <div class="modal-footer border-top-0 bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-warning fw-bold text-dark">Confirmar Alteração</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalLixeiraLote" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{% url 'lixeira_em_lote_equipamentos' %}" method="POST">
+                {% csrf_token %}
+                
+                <input type="hidden" name="equipamentos_ids" class="inputEquipamentosIds">
+
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title fw-bold">🗑️ Exclusão em Lote (Lixeira)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body text-start text-center py-4">
+                    <h5 class="mb-3">Você está prestes a mover <strong class="contadorSelecionados text-warning">0</strong> equipamento(s) para a lixeira.</h5>
+                    
+                    <div class="alert alert-warning small text-start mb-0">
+                        <strong>Nota:</strong> Eles não aparecerão mais no inventário, mas poderão ser restaurados posteriormente através do painel da Lixeira.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Sim, Mover para a Lixeira</button>
                 </div>
             </form>
         </div>

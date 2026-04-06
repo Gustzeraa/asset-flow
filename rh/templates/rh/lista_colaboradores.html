@@ -3,7 +3,25 @@
 {% block conteudo %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Lista de Colaboradores</h2>
-    <a href="{% url 'novo_colaborador' %}" class="btn btn-primary">+ Novo Colaborador</a>
+    
+    <div class="d-flex gap-2">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                ⚙️ Ações
+            </button>
+            <ul class="dropdown-menu shadow-sm border-0">
+                <li>
+                    <button class="dropdown-item py-2 text-danger fw-bold btn-acao-lote" type="button"
+                        data-bs-toggle="modal" data-bs-target="#modalLixeiraLoteColaboradores" disabled>
+                        🗑️ Mover para Lixeira (<span class="contadorSelecionados">0</span>)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <a href="{% url 'novo_colaborador' %}" class="btn btn-primary">+ Novo Colaborador</a>
+    </div>
 </div>
 
 <form method="GET" class="d-flex mb-4 shadow-sm">
@@ -17,9 +35,11 @@
 
 <div class="table-responsive">
     <table class="table table-hover table-bordered align-middle">
-
         <thead class="table-light">
             <tr>
+                <th style="width: 40px;" class="text-center">
+                    <input type="checkbox" class="form-check-input border-secondary" id="checkMestre">
+                </th>
                 <th>Nome</th>
                 <th>CPF</th>
                 <th>Cargo</th>
@@ -29,25 +49,23 @@
                 <th class="text-center">Ações</th>
             </tr>
         </thead>
-
         <tbody>
             {% for colaborador in colaboradores %}
             <tr>
+                <td class="text-center">
+                    <input type="checkbox" class="form-check-input border-secondary check-item" value="{{ colaborador.id }}">
+                </td>
+
                 <td>
                     <a href="{% url 'editar_colaborador' colaborador.id %}" class="text-primary text-decoration-none fw-bold"
                         title="Clique para editar este colaborador">
                         {{ colaborador.nome }}
                     </a>
                 </td>
-
                 <td>{{ colaborador.cpf|default:"-" }}</td>
-
                 <td>{{ colaborador.cargo|default:"-" }}</td>
-
                 <td>{{ colaborador.departamento|default:"-" }}</td>
-
                 <td>{{ colaborador.email }}</td>
-
                 <td class="text-center">
                     {% if colaborador.ativo %}
                     <span class="badge bg-success">Ativo</span>
@@ -55,7 +73,6 @@
                     <span class="badge bg-danger">Desligado</span>
                     {% endif %}
                 </td>
-
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
                         data-bs-target="#modalColaborador{{ colaborador.id }}">
@@ -67,11 +84,10 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="text-center py-4 text-muted">Nenhum colaborador encontrado.</td>
+                <td colspan="8" class="text-center py-4 text-muted">Nenhum colaborador encontrado.</td>
             </tr>
             {% endfor %}
         </tbody>
-
     </table>
 </div>
 
@@ -79,12 +95,10 @@
 <div class="modal fade text-start" id="modalColaborador{{ colaborador.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold">Detalhes do Colaborador</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
             <div class="modal-body">
                 <div class="row mb-4">
                     <div class="col-md-8">
@@ -119,23 +133,20 @@
                                 <td>{{ item.nome }}</td>
                                 <td>
                                     {% if item.status == 'em_uso' %} <span class="badge bg-primary">Em Uso</span>
-                                    {% elif item.status == 'disponivel' %} <span class="badge bg-success">Em
-                                        Estoque</span>
+                                    {% elif item.status == 'disponivel' %} <span class="badge bg-success">Em Estoque</span>
                                     {% else %} <span class="badge bg-warning text-dark">Manutenção</span>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="3" class="text-center text-muted py-3">Nenhum ativo vinculado a este
-                                    colaborador.</td>
+                                <td colspan="3" class="text-center text-muted py-3">Nenhum ativo vinculado a este colaborador.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
-
             <div class="modal-footer justify-content-between">
                 <div>
                     {% if colaborador.equipamentos_responsavel.exists %}
@@ -154,4 +165,74 @@
 </div>
 {% endfor %}
 
+<div class="modal fade" id="modalLixeiraLoteColaboradores" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{% url 'lixeira_em_lote_colaboradores' %}" method="POST">
+                {% csrf_token %}
+                
+                <input type="hidden" name="colaboradores_ids" class="inputItensIds">
+
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title fw-bold">🗑️ Exclusão em Lote (Lixeira)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body text-start text-center py-4">
+                    <h5 class="mb-3">Você está prestes a mover <strong class="contadorSelecionados text-warning">0</strong> colaborador(es) para a lixeira.</h5>
+                    
+                    <div class="alert alert-warning small text-start mb-0">
+                        <strong>Nota:</strong> Eles não aparecerão mais na lista do RH e perderão o acesso ao sistema temporariamente.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Sim, Mover para a Lixeira</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkMestre = document.getElementById('checkMestre');
+        const checkItems = document.querySelectorAll('.check-item');
+        const botoesLote = document.querySelectorAll('.btn-acao-lote');
+        const contadores = document.querySelectorAll('.contadorSelecionados');
+        const inputsItensIds = document.querySelectorAll('.inputItensIds');
+
+        function atualizarSelecao() {
+            let selecionados = [];
+            checkItems.forEach(box => {
+                if (box.checked) selecionados.push(box.value);
+            });
+
+            let qtd = selecionados.length;
+
+            contadores.forEach(span => span.textContent = qtd);
+
+            let idsString = selecionados.join(',');
+            inputsItensIds.forEach(input => input.value = idsString);
+
+            botoesLote.forEach(btn => btn.disabled = (qtd === 0));
+
+            if (checkMestre) {
+                checkMestre.checked = (qtd === checkItems.length && qtd > 0);
+            }
+        }
+
+        if (checkMestre) {
+            checkMestre.addEventListener('change', function () {
+                checkItems.forEach(box => box.checked = this.checked);
+                atualizarSelecao();
+            });
+        }
+
+        checkItems.forEach(box => {
+            box.addEventListener('change', atualizarSelecao);
+        });
+    });
+</script>
 {% endblock %}

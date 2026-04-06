@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-danger border-2">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">🔥 Exclusão Permanente</h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <h5 class="card-title mb-3 text-danger fw-bold">Atenção: Ação Irreversível!</h5>
+                    <p class="card-text mb-4">
+                        Você está prestes a apagar <strong>PARA SEMPRE</strong> o item:<br>
+                        <span class="fs-4 text-dark fw-bold">{{ item.nome }}</span>
+                    </p>
+                    
+                    <div class="alert alert-danger small text-start mb-4 shadow-sm">
+                        <strong>Aviso Crítico:</strong> Este item será removido do banco de dados e não poderá ser recuperado. Todo o histórico de movimentações associado a ele também será perdido.
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <a href="{% url 'lixeira' %}" class="btn btn-secondary px-4 me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-danger fw-bold px-4">Sim, Destruir Item</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,4 +8,6 @@ urlpatterns = [
     path('excluir/<int:id>/', views.excluir_consumivel, name='excluir_consumivel'),
     path('movimentar/<int:id>/', views.registrar_movimentacao, name='registrar_movimentacao'),
     path('historico/', views.historico_movimentacoes, name='historico_movimentacoes'),
+    path('exportar-excel/', views.exportar_movimentacoes_excel, name='exportar_movimentacoes_excel'),
+    path('lote/lixeira/', views.lixeira_em_lote_consumiveis, name='lixeira_em_lote_consumiveis'),
 ]

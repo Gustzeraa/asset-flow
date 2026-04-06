@@ -14,8 +14,9 @@ class Consumivel(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     unidade_medida = models.CharField(max_length=10, choices=UNIDADES, default='un')
     quantidade_atual = models.IntegerField(default=0)
-    estoque_minimo = models.IntegerField(default=5) # O sistema avisa quando estiver acabando!
+    estoque_minimo = models.IntegerField(default=5)
     descricao = models.TextField(blank=True, null=True)
+    excluido = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.nome} ({self.quantidade_atual} {self.unidade_medida})"
@@ -36,7 +37,7 @@ class MovimentacaoConsumivel(models.Model):
     responsavel = models.ForeignKey(Colaborador, on_delete=models.SET_NULL, null=True, blank=True, help_text="Quem solicitou ou retirou?")
     
     # 2. Destino fica livre para digitação
-    destino = models.CharField(max_length=100, blank=True, help_text="Para onde vai? Ex: Copa 2º Andar, Departamento X")
+    destino = models.CharField(max_length=100, blank=True, help_text="Para onde vai? Ex: Copa, Departamento X")
     
     observacao = models.CharField(max_length=255, blank=True)
 

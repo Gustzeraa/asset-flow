@@ -15,6 +15,7 @@ class EquipamentoForm(forms.ModelForm):
         model = Equipamento
         # 1. Adicione os novos campos na lista (escolha a ordem que eles vão aparecer na tela)
         fields = '__all__'  
+        exclude = ['excluido']
         
         # 2. Adicione os widgets para os novos campos
         widgets = {

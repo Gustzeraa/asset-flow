@@ -1,21 +1,31 @@
 {% extends 'base.html' %}
 
 {% block conteudo %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-danger">
-            <div class="card-body text-center p-5">
-                <h3 class="text-danger mb-4">⚠️ Confirmar Exclusão</h3>
-                
-                <p class="fs-5 mb-1">Tem certeza que deseja excluir este registro?</p>
-                <p class="fw-bold fs-4 text-dark">{{ item.nome }}</p>
-                <p class="text-muted small mb-4">Atenção: Esta ação apagará o item permanentemente do banco de dados.</p>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-warning">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <h5 class="mb-0">🗑️ Mover para a Lixeira</h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <h5 class="card-title mb-3">Confirmar remoção temporária?</h5>
+                    <p class="card-text mb-4">
+                        Deseja mover o item <br>
+                        <strong class="fs-4 text-dark">{{ item.nome }}</strong><br>
+                        para a lixeira?
+                    </p>
+                    
+                    <div class="alert alert-secondary small text-start mb-4">
+                        <strong>Nota:</strong> O item não aparecerá mais nas listas de estoque e relatórios, mas você poderá restaurá-lo futuramente acessando a Lixeira.
+                    </div>
 
-                <form method="POST">
-                    {% csrf_token %}
-                    <a href="javascript:history.back()" class="btn btn-secondary me-2 px-4">Cancelar</a>
-                    <button type="submit" class="btn btn-danger px-4">Sim, Excluir</button>
-                </form>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button type="button" onclick="history.back()" class="btn btn-light border px-4 me-2">Cancelar</button>
+                        <button type="submit" class="btn btn-warning fw-bold px-4 text-dark shadow-sm">Sim, Mover para Lixeira</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

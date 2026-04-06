@@ -6,8 +6,50 @@
         <h2 class="mb-0">📖 Histórico de Movimentações</h2>
         <p class="text-muted">Registro completo de entradas e saídas do almoxarifado</p>
     </div>
-    <a href="{% url 'lista_consumiveis' %}" class="btn btn-outline-secondary">⬅️ Voltar ao Estoque</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'exportar_movimentacoes_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success fw-bold">
+            📊 Exportar para Excel
+        </a>
+        <a href="{% url 'lista_consumiveis' %}" class="btn btn-outline-secondary">⬅️ Voltar ao Estoque</a>
+    </div>
 </div>
+
+<form method="GET" class="card card-body bg-light border-secondary border-opacity-25 shadow-sm mb-4">
+    <div class="row g-2 align-items-end">
+        
+        <div class="col-md-4">
+            <label class="form-label small fw-bold text-muted mb-1">Busca Geral</label>
+            <input type="text" name="q" class="form-control" placeholder="Item, responsável, destino..." value="{{ request.GET.q }}">
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted mb-1">Tipo</label>
+            <select name="tipo" class="form-select">
+                <option value="">Todos</option>
+                <option value="entrada" {% if request.GET.tipo == 'entrada' %}selected{% endif %}>🟢 Entradas</option>
+                <option value="saida" {% if request.GET.tipo == 'saida' %}selected{% endif %}>🔴 Saídas</option>
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted mb-1">Data Inicial</label>
+            <input type="date" name="data_inicio" class="form-control" value="{{ request.GET.data_inicio }}">
+        </div>
+        
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted mb-1">Data Final</label>
+            <input type="date" name="data_fim" class="form-control" value="{{ request.GET.data_fim }}">
+        </div>
+        
+        <div class="col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-dark w-100 fw-bold">Filtrar</button>
+            {% if request.GET %}
+                <a href="{% url 'historico_movimentacoes' %}" class="btn btn-outline-danger" title="Limpar Filtros">✖</a>
+            {% endif %}
+        </div>
+        
+    </div>
+</form>
 
 <div class="table-responsive shadow-sm bg-white rounded border">
     <table class="table table-hover align-middle mb-0">

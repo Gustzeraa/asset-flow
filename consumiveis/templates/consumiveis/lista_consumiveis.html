@@ -3,14 +3,33 @@
 {% block conteudo %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Almoxarifado e Suprimentos</h2>
-    <a href="{% url 'novo_consumivel' %}" class="btn btn-primary">+ Novo Item</a>
+    
+    <div class="d-flex gap-2">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                ⚙️ Ações
+            </button>
+            <ul class="dropdown-menu shadow-sm border-0">
+                <li>
+                    <button class="dropdown-item py-2 text-danger fw-bold btn-acao-lote" type="button"
+                        data-bs-toggle="modal" data-bs-target="#modalLixeiraLoteConsumiveis" disabled>
+                        🗑️ Mover para Lixeira (<span class="contadorSelecionados">0</span>)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <a href="{% url 'novo_consumivel' %}" class="btn btn-primary">+ Novo Item</a>
+    </div>
 </div>
 
 <form method="GET" class="d-flex mb-4 shadow-sm gap-2">
-    <input type="text" name="q" class="form-control" placeholder="Pesquisar por nome do item..." value="{{ request.GET.q }}">
+    <input type="text" name="q" class="form-control" placeholder="Pesquisar por nome do item..."
+        value="{{ request.GET.q }}">
     <button type="submit" class="btn btn-dark px-4">Buscar</button>
     {% if request.GET.q %}
-        <a href="?" class="btn btn-outline-danger">Limpar</a>
+    <a href="?" class="btn btn-outline-danger">Limpar</a>
     {% endif %}
 </form>
 
@@ -18,6 +37,9 @@
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
             <tr>
+                <th style="width: 40px;" class="text-center">
+                    <input type="checkbox" class="form-check-input border-secondary" id="checkMestre">
+                </th>
                 <th>Item</th>
                 <th class="text-center">Estoque Atual</th>
                 <th class="text-center">Mínimo</th>
@@ -28,47 +50,51 @@
         <tbody>
             {% for item in consumiveis %}
             <tr>
-                <td class="fw-bold text-primary">{{ item.nome }}</td>
+                <td class="text-center">
+                    <input type="checkbox" class="form-check-input border-secondary check-item" value="{{ item.id }}">
+                </td>
+                
+                <td>
+                    <a href="{% url 'editar_consumivel' item.id %}" class="text-primary text-decoration-none fw-bold"
+                        title="Clique para editar ou ver detalhes">
+                        {{ item.nome }}
+                    </a>
+                </td>
                 <td class="text-center fs-5 fw-bold">
-                    {{ item.quantidade_atual }} 
+                    {{ item.quantidade_atual }}
                     <span class="fs-6 fw-normal text-muted">{{ item.get_unidade_medida_display }}</span>
                 </td>
                 <td class="text-center text-muted">{{ item.estoque_minimo }}</td>
                 <td class="text-center">
-                    {% if item.quantidade_atual <= 0 %}
-                        <span class="badge bg-danger">Esgotado</span>
-                    {% elif item.quantidade_atual <= item.estoque_minimo %}
-                        <span class="badge bg-warning text-dark">Estoque Baixo</span>
-                    {% else %}
-                        <span class="badge bg-success">Adequado</span>
+                    {% if item.quantidade_atual <= 0 %} <span class="badge bg-danger">Esgotado</span>
+                    {% elif item.quantidade_atual <= item.estoque_minimo %} <span class="badge bg-warning text-dark">Estoque Baixo</span>
+                    {% else %} <span class="badge bg-success">Adequado</span>
                     {% endif %}
                 </td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-success fw-bold me-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalMovimentar{{ item.id }}">
+                    <button type="button" class="btn btn-sm btn-success fw-bold me-1 shadow-sm" data-bs-toggle="modal"
+                        data-bs-target="#modalMovimentar{{ item.id }}">
                         📦 Movimentar
                     </button>
-                    <a href="{% url 'editar_consumivel' item.id %}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                    <a href="{% url 'editar_consumivel' item.id %}"
+                        class="btn btn-sm btn-outline-primary me-1">Editar</a>
                 </td>
             </tr>
 
             <div class="modal fade text-start" id="modalMovimentar{{ item.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content border-0 shadow">
-                        
                         <form action="{% url 'registrar_movimentacao' item.id %}" method="POST">
                             {% csrf_token %}
-                            
                             <div class="modal-header bg-light">
                                 <h5 class="modal-title fw-bold">📦 Registrar Movimentação</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
-                            
                             <div class="modal-body">
                                 <h4 class="text-primary mb-1">{{ item.nome }}</h4>
                                 <p class="text-muted mb-4 border-bottom pb-2">
                                     Saldo atual na prateleira: <strong class="text-dark">{{ item.quantidade_atual }} {{ item.get_unidade_medida_display }}</strong>
                                 </p>
-                                
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Tipo de Movimentação *</label>
                                     <select name="tipo" class="form-select border-secondary" required>
@@ -77,33 +103,28 @@
                                         <option value="saida">🔴 SAÍDA (Consumo/Uso)</option>
                                     </select>
                                 </div>
-                                
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Quantidade *</label>
                                     <input type="number" name="quantidade" class="form-control border-secondary" min="1" required>
                                 </div>
-                                
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Responsável (Quem pediu?)</label>
                                     <select name="responsavel" class="form-select border-secondary">
                                         <option value="">Selecione o colaborador...</option>
                                         {% for colab in colaboradores %}
-                                            <option value="{{ colab.id }}">{{ colab.nome }}</option>
+                                        <option value="{{ colab.id }}">{{ colab.nome }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                                
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Destino / Local</label>
-                                    <input type="text" name="destino" class="form-control border-secondary" placeholder="Ex: Copa 2º Andar, Departamento X">
+                                    <input type="text" name="destino" class="form-control border-secondary" placeholder="Ex: Copa, Departamento X">
                                 </div>
-
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Observação</label>
-                                    <input type="text" name="observacao" class="form-control border-secondary" placeholder="Ex: Chamado #1234 (Opcional)">
+                                    <input type="text" name="observacao" class="form-control border-secondary" placeholder="(Opcional)">
                                 </div>
                             </div>
-                            
                             <div class="modal-footer bg-light">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                                 <button type="submit" class="btn btn-success fw-bold">Confirmar Movimentação</button>
@@ -115,7 +136,7 @@
 
             {% empty %}
             <tr>
-                <td colspan="5" class="text-center py-5 text-muted">
+                <td colspan="6" class="text-center py-5 text-muted">
                     <h5>Nenhum item cadastrado no almoxarifado.</h5>
                     <p>Clique em "+ Novo Item" para começar a controlar os suprimentos.</p>
                 </td>
@@ -124,4 +145,81 @@
         </tbody>
     </table>
 </div>
+
+<div class="modal fade" id="modalLixeiraLoteConsumiveis" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{% url 'lixeira_em_lote_consumiveis' %}" method="POST">
+                {% csrf_token %}
+                
+                <input type="hidden" name="consumiveis_ids" class="inputItensIds">
+
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title fw-bold">🗑️ Exclusão em Lote (Lixeira)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body text-start text-center py-4">
+                    <h5 class="mb-3">Você está prestes a mover <strong class="contadorSelecionados text-warning">0</strong> consumível(is) para a lixeira.</h5>
+                    
+                    <div class="alert alert-warning small text-start mb-0">
+                        <strong>Nota:</strong> Eles não aparecerão mais no estoque atual, mas poderão ser restaurados na Lixeira global do sistema.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Sim, Mover para a Lixeira</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkMestre = document.getElementById('checkMestre');
+        const checkItems = document.querySelectorAll('.check-item');
+        const botoesLote = document.querySelectorAll('.btn-acao-lote');
+        const contadores = document.querySelectorAll('.contadorSelecionados');
+        
+        // Aqui usamos a mesma classe que definimos no input do modal
+        const inputsItensIds = document.querySelectorAll('.inputItensIds');
+
+        function atualizarSelecao() {
+            let selecionados = [];
+            checkItems.forEach(box => {
+                if (box.checked) selecionados.push(box.value);
+            });
+
+            let qtd = selecionados.length;
+
+            // Atualiza os números nos botões e modais
+            contadores.forEach(span => span.textContent = qtd);
+
+            // Preenche o campo oculto com os IDs separados por vírgula (ex: "1,4,7")
+            let idsString = selecionados.join(',');
+            inputsItensIds.forEach(input => input.value = idsString);
+
+            // Ativa ou desativa o botão "Mover para Lixeira"
+            botoesLote.forEach(btn => btn.disabled = (qtd === 0));
+
+            // Marca o checkbox mestre se todos estiverem marcados
+            if (checkMestre) {
+                checkMestre.checked = (qtd === checkItems.length && qtd > 0);
+            }
+        }
+
+        if (checkMestre) {
+            checkMestre.addEventListener('change', function () {
+                checkItems.forEach(box => box.checked = this.checked);
+                atualizarSelecao();
+            });
+        }
+
+        checkItems.forEach(box => {
+            box.addEventListener('change', atualizarSelecao);
+        });
+    });
+</script>
 {% endblock %}
