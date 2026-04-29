@@ -25,11 +25,12 @@ from .views import frontend_app
 urlpatterns = [
     path('api/', include('api.urls')),
     path('admin/', admin.site.urls),
+    path('favicon.svg', RedirectView.as_view(url='/assets/favicon.svg', permanent=False)),
     path('contas/login/', RedirectView.as_view(url='/login', permanent=False)),
     path('contas/', include('django.contrib.auth.urls')),
     path('rh/', include('rh.urls')),
     path('almoxarifado/', include('consumiveis.urls')),
-    re_path(r'^(login|dashboard)/?$', frontend_app, name='frontend_app'),
+    re_path(r'^(?:login|dashboard)/?$', frontend_app, name='frontend_app'),
     path('', include('estoque.urls')),
 ]
 

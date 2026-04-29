@@ -120,11 +120,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/assets/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+STATICFILES_DIRS = []
 if (FRONTEND_DIST_DIR / 'assets').exists():
-    STATICFILES_DIRS = [FRONTEND_DIST_DIR / 'assets']
+    STATICFILES_DIRS.append(FRONTEND_DIST_DIR / 'assets')
+if (FRONTEND_DIR / 'public').exists():
+    STATICFILES_DIRS.append(FRONTEND_DIR / 'public')
 
 
 MEDIA_URL = '/media/'
