@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0 text-dark fw-bold">Controle de Acessos</h2>
+        <p class="text-muted">Gerenciamento de logins e permissões do sistema</p>
+    </div>
+    
+    <a href="{% url 'novo_usuario' %}" class="btn btn-primary fw-bold shadow-sm">+ Novo Usuário</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Nome de Usuário (Login)</th>
+                        <th>E-mail</th>
+                        <th class="text-center">Nível de Acesso</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-dark">
+                            👤 {{ usuario.username }}
+                        </td>
+                        <td class="text-muted">{{ usuario.email|default:"Sem e-mail" }}</td>
+                        <td class="text-center">
+                            {% if usuario.is_superuser %}
+                                <span class="badge bg-dark">Super Admin</span>
+                            {% elif usuario.is_staff %}
+                                <span class="badge bg-info text-dark">Equipe de TI</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Padrão</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if usuario.is_active %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Bloqueado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center pe-4">
+                            <a href="{% url 'resetar_senha' usuario.id %}" class="btn btn-sm btn-outline-secondary fw-bold" title="Resetar Senha">🔑</a>
+                            <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-sm btn-outline-primary fw-bold ms-1" title="Editar Acesso">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">Nenhum usuário cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-4 shadow-sm border-0 d-flex align-items-center">
+    <span class="fs-3 me-3">💡</span>
+    <div>
+        <strong>Dica de Arquitetura:</strong> O "Usuário" é a pessoa que faz login no sistema (Autenticação). O "Colaborador" (lá no RH) é a pessoa que recebe os equipamentos (Regra de Negócio). Muitas vezes, eles podem ser a mesma pessoa!
+    </div>
+</div>
+{% endblock %}

@@ -23,5 +23,8 @@ urlpatterns = [
     path('lixeira/restaurar/<str:tipo>/<int:id>/', views.restaurar_item, name='restaurar_item'),
     path('lixeira/excluir-permanente/<str:tipo>/<int:id>/', views.excluir_permanente, name='excluir_permanente'),
     path('equipamentos/lote/lixeira/', views.lixeira_em_lote_equipamentos, name='lixeira_em_lote_equipamentos'),
-    
+    path('configuracoes/usuarios/', views.gerenciar_usuarios, name='gerenciar_usuarios'),
+    path('configuracoes/usuarios/novo/', views.novo_usuario, name='novo_usuario'),
+    path('configuracoes/usuarios/<int:id>/editar/', views.editar_usuario, name='editar_usuario'),
+    path('configuracoes/usuarios/<int:id>/senha/', views.resetar_senha, name='resetar_senha'),
 ]

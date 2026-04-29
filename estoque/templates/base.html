@@ -167,13 +167,23 @@
                         👥 <span class="nav-text ms-2">Colaboradores</span>
                     </a>
                 </li>
-                <hr class="text-white-50 my-2">
+                
+                {% if request.user.is_staff %}
+                    <hr class="text-white-50 my-2">
+                    
+                    <li class="nav-item mb-1">
+                        <a href="{% url 'gerenciar_usuarios' %}" class="nav-link text-info opacity-75 hover-opacity-100">
+                            👤 <span class="nav-text ms-2">Usuários</span>
+                        </a>
+                    </li>
 
-                <li class="nav-item mb-1">
-                    <a href="{% url 'lixeira' %}" class="nav-link text-warning opacity-75 hover-opacity-100">
-                        🗑️ <span class="nav-text ms-2">Lixeira</span>
-                    </a>
-                </li>
+                    <li class="nav-item mb-1">
+                        <a href="{% url 'lixeira' %}" class="nav-link text-warning opacity-75 hover-opacity-100">
+                            🗑️ <span class="nav-text ms-2">Lixeira</span>
+                        </a>
+                    </li>
+                {% endif %}
+
             </ul>
             <div class="border-top border-secondary p-3 mt-auto">
                 <form action="{% url 'logout' %}" method="post" class="m-0 p-0">
@@ -204,8 +214,10 @@
                 </div>
                 {% endfor %}
                 {% endif %}
+                
                 {% block conteudo %}
                 {% endblock %}
+                
             </div>
 
         </div>

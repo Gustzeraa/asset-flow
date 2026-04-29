@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q, F
 from .models import Equipamento, Categoria
 from .forms import EquipamentoForm, CategoriaForm
@@ -10,6 +11,9 @@ from django.contrib import messages
 from django.db import IntegrityError
 from datetime import datetime
 from consumiveis.models import Consumivel
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import AdminPasswordChangeForm
+from .forms import NovoUsuarioForm, EditarUsuarioForm
 
 @login_required
 def lista_equipamentos(request):
@@ -392,7 +396,13 @@ def baixar_modelo_csv(request):
     
     return response
 
+def is_ti(user):
+    if not user.is_staff:
+        raise PermissionDenied
+    return True
+
 @login_required
+@user_passes_test(is_ti)
 def lixeira(request):
     equipamentos_excluidos = Equipamento.objects.filter(excluido=True)
     consumiveis_excluidos = Consumivel.objects.filter(excluido=True)
@@ -470,3 +480,60 @@ def lixeira_em_lote_equipamentos(request):
             messages.error(request, 'Nenhum equipamento foi selecionado.')
             
     return redirect('lista_equipamentos')
+
+@login_required
+@user_passes_test(is_ti)
+def gerenciar_usuarios(request):
+    # Trazemos todos os usuários, colocando o pessoal da TI primeiro na lista
+    usuarios = User.objects.all().order_by('-is_staff', 'username')
+    
+    return render(request, 'estoque/gerenciar_usuarios.html', {'usuarios': usuarios})
+
+@login_required
+@user_passes_test(is_ti)
+def novo_usuario(request):
+    if request.method == 'POST':
+        form = NovoUsuarioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Novo usuário criado com sucesso!')
+            return redirect('gerenciar_usuarios')
+    else:
+        form = NovoUsuarioForm()
+        
+    return render(request, 'estoque/form_usuario.html', {'form': form, 'titulo': 'Criar Novo Usuário'})
+
+@login_required
+@user_passes_test(is_ti)
+def editar_usuario(request, id):
+    usuario = get_object_or_404(User, id=id)
+    if request.method == 'POST':
+        form = EditarUsuarioForm(request.POST, instance=usuario)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Acessos do usuário atualizados!')
+            return redirect('gerenciar_usuarios')
+    else:
+        form = EditarUsuarioForm(instance=usuario)
+        
+    return render(request, 'estoque/form_usuario.html', {'form': form, 'titulo': f'Editar Usuário: {usuario.username}'})
+
+@login_required
+@user_passes_test(is_ti)
+def resetar_senha(request, id):
+    usuario = get_object_or_404(User, id=id)
+    if request.method == 'POST':
+        # O AdminPasswordChangeForm ignora a necessidade da senha antiga!
+        form = AdminPasswordChangeForm(usuario, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Senha de {usuario.username} redefinida com sucesso!')
+            return redirect('gerenciar_usuarios')
+    else:
+        form = AdminPasswordChangeForm(usuario)
+        
+    # Aplicando o bootstrap nos campos de senha na hora
+    for field in form.fields.values():
+        field.widget.attrs['class'] = 'form-control border-secondary'
+        
+    return render(request, 'estoque/form_usuario.html', {'form': form, 'titulo': f'Redefinir Senha: {usuario.username}'})
