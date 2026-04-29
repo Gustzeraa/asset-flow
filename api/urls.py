@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import auth
+from .views import auth, categories, collaborators, consumables, dashboard, equipments, lookups, trash
 
 
 urlpatterns = [
@@ -8,4 +8,33 @@ urlpatterns = [
     path('auth/login/', auth.login_view, name='api_login'),
     path('auth/logout/', auth.logout_view, name='api_logout'),
     path('auth/me/', auth.me, name='api_me'),
+    path('dashboard/', dashboard.dashboard_summary, name='api_dashboard'),
+    path('lookups/', lookups.lookups, name='api_lookups'),
+    path('categories/', categories.categories_collection, name='api_categories'),
+    path('categories/<int:category_id>/', categories.category_detail, name='api_category_detail'),
+    path('equipments/', equipments.equipments_collection, name='api_equipments'),
+    path('equipments/export/', equipments.export_inventory, name='api_equipments_export'),
+    path('equipments/import/', equipments.import_inventory, name='api_equipments_import'),
+    path('equipments/import/template/', equipments.download_template, name='api_equipments_import_template'),
+    path('equipments/bulk/transfer/', equipments.bulk_transfer, name='api_equipments_bulk_transfer'),
+    path('equipments/bulk/category/', equipments.bulk_change_category, name='api_equipments_bulk_category'),
+    path('equipments/bulk/trash/', equipments.bulk_trash, name='api_equipments_bulk_trash'),
+    path('equipments/<int:equipment_id>/', equipments.equipment_detail, name='api_equipment_detail'),
+    path('equipments/<int:equipment_id>/transfer/', equipments.transfer_equipment, name='api_equipment_transfer'),
+    path('equipments/<int:equipment_id>/trash/', equipments.trash_equipment, name='api_equipment_trash'),
+    path('collaborators/', collaborators.collaborators_collection, name='api_collaborators'),
+    path('collaborators/bulk/trash/', collaborators.bulk_trash, name='api_collaborators_bulk_trash'),
+    path('collaborators/<int:collaborator_id>/', collaborators.collaborator_detail, name='api_collaborator_detail'),
+    path('collaborators/<int:collaborator_id>/term/', collaborators.term_pdf, name='api_collaborator_term'),
+    path('collaborators/<int:collaborator_id>/trash/', collaborators.trash_collaborator, name='api_collaborator_trash'),
+    path('consumables/', consumables.consumables_collection, name='api_consumables'),
+    path('consumables/bulk/trash/', consumables.bulk_trash, name='api_consumables_bulk_trash'),
+    path('consumables/movements/', consumables.movements_collection, name='api_consumable_movements'),
+    path('consumables/movements/export/', consumables.export_movements, name='api_consumable_movements_export'),
+    path('consumables/<int:consumable_id>/', consumables.consumable_detail, name='api_consumable_detail'),
+    path('consumables/<int:consumable_id>/movements/', consumables.register_movement, name='api_consumable_movement_create'),
+    path('consumables/<int:consumable_id>/trash/', consumables.trash_consumable, name='api_consumable_trash'),
+    path('trash/', trash.trash_collection, name='api_trash'),
+    path('trash/<str:item_type>/<int:item_id>/restore/', trash.restore_item, name='api_trash_restore'),
+    path('trash/<str:item_type>/<int:item_id>/', trash.delete_item, name='api_trash_delete'),
 ]

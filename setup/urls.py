@@ -28,10 +28,10 @@ urlpatterns = [
     path('favicon.svg', RedirectView.as_view(url='/assets/favicon.svg', permanent=False)),
     path('contas/login/', RedirectView.as_view(url='/login', permanent=False)),
     path('contas/', include('django.contrib.auth.urls')),
-    path('rh/', include('rh.urls')),
-    path('almoxarifado/', include('consumiveis.urls')),
-    re_path(r'^(?:login|dashboard)/?$', frontend_app, name='frontend_app'),
-    path('', include('estoque.urls')),
+    path('legacy/rh/', include('rh.urls')),
+    path('legacy/almoxarifado/', include('consumiveis.urls')),
+    path('legacy/', include('estoque.urls')),
+    re_path(r'^(?!api/|admin/|contas/|legacy/|media/|assets/|favicon\.svg$).*$' , frontend_app, name='frontend_app'),
 ]
 
 if settings.DEBUG:

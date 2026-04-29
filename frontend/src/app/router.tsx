@@ -3,9 +3,16 @@ import { useEffect } from 'react'
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth-context'
+import { AppShellLayout } from '@/components/layout/app-shell-layout'
 import { LoadingPanel } from '@/components/feedback/loading-panel'
-import { DashboardPage } from '@/features/auth/dashboard-page'
 import { LoginPage } from '@/features/auth/login-page'
+import { CategoriesPage } from '@/features/categories/categories-page'
+import { CollaboratorsPage } from '@/features/collaborators/collaborators-page'
+import { ConsumablesPage } from '@/features/consumables/consumables-page'
+import { DashboardPage } from '@/features/dashboard/dashboard-page'
+import { EquipmentsPage } from '@/features/equipments/equipments-page'
+import { MovementsPage } from '@/features/movements/movements-page'
+import { TrashPage } from '@/features/trash/trash-page'
 
 
 function getNextPath(search: string) {
@@ -19,7 +26,7 @@ function getNextPath(search: string) {
 
 
 function isSpaPath(pathname: string) {
-  return pathname === '/dashboard' || pathname === '/login'
+  return ['/', '/dashboard', '/equipamentos', '/categorias', '/colaboradores', '/consumiveis', '/historico', '/lixeira', '/login'].includes(pathname)
 }
 
 
@@ -49,7 +56,7 @@ function ProtectedRoute() {
     return <Navigate replace to={`/login?next=${encodeURIComponent(nextPath)}`} />
   }
 
-  return <DashboardPage />
+  return <AppShellLayout />
 }
 
 
@@ -83,8 +90,17 @@ export function AppRouter() {
     <Router>
       <Routes>
         <Route element={<LoginGuard />} path="/login" />
-        <Route element={<ProtectedRoute />} path="/dashboard" />
-        <Route element={<Navigate replace to="/login" />} path="*" />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Navigate replace to="/dashboard" />} path="/" />
+          <Route element={<DashboardPage />} path="/dashboard" />
+          <Route element={<EquipmentsPage />} path="/equipamentos" />
+          <Route element={<CategoriesPage />} path="/categorias" />
+          <Route element={<CollaboratorsPage />} path="/colaboradores" />
+          <Route element={<ConsumablesPage />} path="/consumiveis" />
+          <Route element={<MovementsPage />} path="/historico" />
+          <Route element={<TrashPage />} path="/lixeira" />
+        </Route>
+        <Route element={<Navigate replace to="/dashboard" />} path="*" />
       </Routes>
     </Router>
   )
