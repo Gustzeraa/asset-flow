@@ -10,11 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / 'frontend'
+FRONTEND_DIST_DIR = FRONTEND_DIR / 'dist'
 
 
 # Quick-start development settings - unsuitable for production
@@ -26,7 +27,7 @@ SECRET_KEY = 'django-insecure-(l@90&zi+w(m@7w1+&#+698-q12vso&ltzcw%c)r(#q46ywjwq
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'api',
     'estoque',
     'rh',
     'consumiveis',
@@ -58,7 +60,7 @@ ROOT_URLCONF = 'setup.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [FRONTEND_DIST_DIR] if FRONTEND_DIST_DIR.exists() else [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -119,15 +121,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+if (FRONTEND_DIST_DIR / 'assets').exists():
+    STATICFILES_DIRS = [FRONTEND_DIST_DIR / 'assets']
 
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Redirecionamentos de Login
-LOGIN_REDIRECT_URL = 'dashboard'  # Redireciona para o dashboard após login bem-sucedido
-LOGIN_URL = 'login' 
+LOGIN_REDIRECT_URL = '/dashboard'
+LOGIN_URL = '/login'
+LOGOUT_REDIRECT_URL = '/login'
 
-LOGOUT_REDIRECT_URL = 'login'
-# Permite que telas do sistema abram dentro de iframes (Modais) no mesmo domínio
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:5173',
+    'http://localhost:5173',
+]
+
 X_FRAME_OPTIONS = 'SAMEORIGIN'

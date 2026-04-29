@@ -4,3 +4,9 @@ __pycache__/
 *.pyo
 *.pyd
 *.sqlite3
+frontend/node_modules/
+frontend/dist/
+data/media/
+staticfiles/
+*.run.out.log
+*.run.err.log
