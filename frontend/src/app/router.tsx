@@ -13,6 +13,7 @@ import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { EquipmentsPage } from '@/features/equipments/equipments-page'
 import { MovementsPage } from '@/features/movements/movements-page'
 import { TrashPage } from '@/features/trash/trash-page'
+import { UsersPage } from '@/features/users/users-page'
 
 
 function getNextPath(search: string) {
@@ -26,7 +27,7 @@ function getNextPath(search: string) {
 
 
 function isSpaPath(pathname: string) {
-  return ['/', '/dashboard', '/equipamentos', '/categorias', '/colaboradores', '/consumiveis', '/historico', '/lixeira', '/login'].includes(pathname)
+  return ['/', '/dashboard', '/equipamentos', '/categorias', '/colaboradores', '/consumiveis', '/historico', '/lixeira', '/login', '/usuarios'].includes(pathname)
 }
 
 
@@ -99,6 +100,7 @@ export function AppRouter() {
           <Route element={<ConsumablesPage />} path="/consumiveis" />
           <Route element={<MovementsPage />} path="/historico" />
           <Route element={<TrashPage />} path="/lixeira" />
+          <Route element={<UsersPage />} path="/usuarios" />
         </Route>
         <Route element={<Navigate replace to="/dashboard" />} path="*" />
       </Routes>
