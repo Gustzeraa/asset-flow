@@ -1,5 +1,4 @@
 from django.db import models
-from rh.models import Colaborador
 
 # Create your models here.
 class Categoria(models.Model):
@@ -55,9 +54,16 @@ class Equipamento(models.Model):
 
     def __str__(self):
         return f"{self.nome} - {self.get_status_display()} - {self.num_patrimonio}"
+    
 
+class EquipamentoImagem(models.Model):
+    equipamento = models.ForeignKey(
+        Equipamento, 
+        on_delete=models.CASCADE, 
+        related_name='galeria'
+    )
+    imagem = models.ImageField(upload_to='fotos_equipamentos/galeria/')
+    data_upload = models.DateTimeField(auto_now_add=True)
 
-
-
-
-
+    def __str__(self):
+        return f"Imagem de {self.equipamento.nome}"

@@ -28,6 +28,8 @@ import {
   IconTrashFilled,
   IconTrashXFilled,
   IconUserFilled,
+  IconArchive,
+  IconEye
 } from '@tabler/icons-react'
 
 
@@ -70,6 +72,8 @@ export const actionIcons = {
   session: IconShieldLockFilled,
   transfer: IconArrowAutofitRightFilled,
   upload: IconFileUploadFilled,
+  archive: IconArchive,
+  view: IconEye
 } as const
 
 export const sectionIcons = {

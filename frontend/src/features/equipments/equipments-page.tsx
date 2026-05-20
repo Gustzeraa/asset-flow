@@ -27,10 +27,8 @@ import { useAsyncData } from '@/hooks/use-async-data'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { formatDate, formatNullable } from '@/lib/format'
-import { toFormData } from '@/lib/forms'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Equipment } from '@/types/domain'
-
 
 type EquipmentListResponse = {
   items: Equipment[]
@@ -55,7 +53,7 @@ type EquipmentFormState = {
   responsavel: string
   validador: string
   observacao: string
-  foto: File | null
+  imagens: []
 }
 
 const today = new Date().toISOString().slice(0, 10)
@@ -74,13 +72,14 @@ function createInitialEquipmentForm(defaultStatus: string): EquipmentFormState {
     responsavel: '',
     validador: '',
     observacao: '',
-    foto: null,
+    imagens: [],
   }
 }
 
-
 export function EquipmentsPage() {
   const { lookups, refreshLookups } = useLookups()
+  
+  // Ícones
   const SearchIcon = actionIcons.search
   const AddIcon = actionIcons.add
   const EditIcon = actionIcons.edit
@@ -88,18 +87,22 @@ export function EquipmentsPage() {
   const DownloadIcon = actionIcons.download
   const UploadIcon = actionIcons.upload
   const TransferIcon = actionIcons.transfer
+  const ViewIcon = actionIcons.view // Ícone para visualização rápida
+  
   const EquipmentIcon = screenIcons.equipments
   const CategoryIcon = screenIcons.categories
   const ActiveIcon = sectionIcons.active
   const AvailableIcon = sectionIcons.available
   const InUseIcon = sectionIcons.inUse
   const MaintenanceIcon = sectionIcons.maintenance
+  
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [categoria, setCategoria] = useState<string | null>(null)
   const [ordenacao, setOrdenacao] = useState<string | null>(null)
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  
   const query = useMemo(() => {
     const params = new URLSearchParams()
     if (deferredSearch) params.set('search', deferredSearch)
@@ -114,6 +117,7 @@ export function EquipmentsPage() {
     () => apiFetch<EquipmentListResponse>(`/api/equipments/${query ? `?${query}` : ''}`),
     [query],
   )
+  
   const [opened, setOpened] = useState(false)
   const [transferOpened, setTransferOpened] = useState(false)
   const [categoryOpened, setCategoryOpened] = useState(false)
@@ -128,6 +132,9 @@ export function EquipmentsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isTransferring, setIsTransferring] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  
+  // NOVO: Estado para Visualização Rápida
+  const [viewingEquipment, setViewingEquipment] = useState<Equipment | null>(null)
 
   const items = useMemo(() => data?.items ?? [], [data?.items])
 
@@ -163,7 +170,7 @@ export function EquipmentsPage() {
       responsavel: item.responsavel_id ? String(item.responsavel_id) : '',
       validador: item.validador_id ? String(item.validador_id) : '',
       observacao: item.observacao ?? '',
-      foto: null,
+      imagens: [],
     })
     setOpened(true)
   }
@@ -201,36 +208,50 @@ export function EquipmentsPage() {
     setSelectedIds(new Set(items.map((item) => item.id)))
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSaving(true)
 
-    const payload = toFormData({
-      data: form.data,
-      nome: form.nome,
-      num_patrimonio: form.num_patrimonio,
-      categoria: form.categoria,
-      local: form.local,
-      tipo: form.tipo,
-      departamento: form.departamento,
-      descricao: form.descricao,
-      status: form.status,
-      responsavel: form.responsavel,
-      validador: form.validador,
-      observacao: form.observacao,
-      foto: form.foto ?? undefined,
-    })
+    const formData = new FormData()
+    formData.append('data', form.data)
+    formData.append('nome', form.nome)
+    formData.append('num_patrimonio', form.num_patrimonio)
+    formData.append('categoria', form.categoria)
+    formData.append('local', form.local)
+    formData.append('tipo', form.tipo)
+    formData.append('departamento', form.departamento)
+    formData.append('descricao', form.descricao)
+    formData.append('status', form.status)
+    formData.append('responsavel', form.responsavel)
+    formData.append('validador', form.validador)
+    formData.append('observacao', form.observacao)
+    
+    // Garantimos que imagensArray seja sempre uma lista, mesmo que o TypeScript se confunda
+    const imagensArray = Array.isArray(form.imagens) 
+      ? form.imagens 
+      : (form.imagens ? [form.imagens as unknown as File] : [])
+
+    if (imagensArray.length > 0) {
+      // A primeira imagem selecionada vira a Foto de Capa
+      formData.append('foto', imagensArray[0])
+
+      // As demais imagens (a partir da segunda) vão para a galeria
+      const fotosGaleria = imagensArray.slice(1, 5)
+      fotosGaleria.forEach((file) => {
+        formData.append('galeria', file)
+      })
+    }
 
     try {
       if (editing) {
         await apiFetch(`/api/equipments/${editing.id}/`, {
           method: 'POST',
-          body: payload,
+          body: formData,
         })
       } else {
         await apiFetch('/api/equipments/', {
           method: 'POST',
-          body: payload,
+          body: formData,
         })
       }
 
@@ -552,7 +573,7 @@ export function EquipmentsPage() {
                 key: 'status',
                 label: 'Status',
                 width: 160,
-                render: (item) => <StatusBadge label={item.status_label} value={item.status} />,
+                render: (item) => <StatusBadge label={item.status_label || item.status} value={item.status} />,
               },
               {
                 key: 'responsavel',
@@ -578,13 +599,17 @@ export function EquipmentsPage() {
                 width: 180,
                 render: (item) => (
                   <Group gap="xs">
-                    <ActionIcon color="teal" onClick={() => openSingleTransfer(item)} radius="xl" variant="light">
+                    {/* NOVO BOTÃO: Visualização Rápida */}
+                    <ActionIcon color="blue" onClick={() => setViewingEquipment(item)} radius="xl" variant="light" title="Visualizar detalhes">
+                      <ViewIcon size={15} />
+                    </ActionIcon>
+                    <ActionIcon color="teal" onClick={() => openSingleTransfer(item)} radius="xl" variant="light" title="Transferir equipamento">
                       <TransferIcon size={15} />
                     </ActionIcon>
-                    <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light">
+                    <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light" title="Editar">
                       <EditIcon size={15} />
                     </ActionIcon>
-                    <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light">
+                    <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light" title="Excluir">
                       <DeleteIcon size={15} />
                     </ActionIcon>
                   </Group>
@@ -650,10 +675,15 @@ export function EquipmentsPage() {
             <Textarea autosize label="Observacao" minRows={3} onChange={(event) => updateForm('observacao', event.currentTarget.value)} value={form.observacao} />
             <FileInput
               accept="image/*"
-              label="Foto do equipamento"
-              onChange={(file) => updateForm('foto', file)}
-              placeholder="Selecione uma imagem"
-              value={form.foto}
+              label="Fotos do Equipamento"
+              description="A primeira foto selecionada será usada como capa. Você pode selecionar até 5 fotos no total."
+              multiple
+              clearable
+              // O "any" ignora a confusão interna do Mantine e força o TypeScript a aceitar a lista
+              onChange={(payload: any) => updateForm('imagens', payload || [])}
+              placeholder="Clique para selecionar as imagens..."
+              // Passamos a lista diretamente, pois ela já inicializa como um array vazio []
+              value={form.imagens} 
             />
             <Group justify="flex-end">
               <AppButton color="gray" motionDisabled onClick={() => setOpened(false)} type="button" variant="subtle">
@@ -736,6 +766,129 @@ export function EquipmentsPage() {
             </Group>
           </Stack>
         </form>
+      </AppModal>
+
+{/* NOVO: Modal de Visualização Rápida com Foto e Galeria */}
+      <AppModal 
+        onClose={() => setViewingEquipment(null)} 
+        opened={!!viewingEquipment} 
+        size="lg" 
+        title="Detalhes do Equipamento"
+      >
+        {viewingEquipment && (
+          <Stack gap="xl">
+            
+            {/* Cabeçalho do Detalhe com a Foto Principal */}
+            <Group wrap="nowrap" align="flex-start" gap="md">
+              {/* Renderiza a foto ou o ícone padrão se não tiver foto */}
+              {viewingEquipment.foto_url ? (
+                <Image 
+                  alt={viewingEquipment.nome} 
+                  className="rounded-xl border border-slate-200" 
+                  h={100} 
+                  src={viewingEquipment.foto_url} 
+                  w={100} 
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <div className="flex shrink-0 h-[100px] w-[100px] items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                  <EquipmentIcon size={40} />
+                </div>
+              )}
+              
+              <Stack gap="xs" style={{ flex: 1 }}>
+                <Group justify="space-between" align="flex-start">
+                  <div>
+                    <Text size="xl" fw={700}>{viewingEquipment.nome}</Text>
+                    <Text c="dimmed" size="sm">Patrimônio: {viewingEquipment.num_patrimonio}</Text>
+                  </div>
+                  <StatusBadge 
+                    label={(viewingEquipment as any).status_label || viewingEquipment.status} 
+                    value={viewingEquipment.status} 
+                  />
+                </Group>
+              </Stack>
+            </Group>
+
+            {/* Grid de Informações Curtas */}
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Categoria</Text>
+                <Text fw={500}>{viewingEquipment.categoria?.nome || 'Sem categoria'}</Text>
+              </Stack>
+              
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Tipo</Text>
+                <Text fw={500}>{formatNullable(viewingEquipment.tipo)}</Text>
+              </Stack>
+
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Departamento</Text>
+                <Text fw={500}>{formatNullable(viewingEquipment.departamento)}</Text>
+              </Stack>
+
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Local</Text>
+                <Text fw={500}>{formatNullable(viewingEquipment.local)}</Text>
+              </Stack>
+
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Responsável Atual</Text>
+                <Text fw={500}>{viewingEquipment.responsavel?.nome || 'Estoque Interno'}</Text>
+              </Stack>
+
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Data de Registro</Text>
+                <Text fw={500}>{formatDate(viewingEquipment.data)}</Text>
+              </Stack>
+            </SimpleGrid>
+
+            {/* Informações Longas (Ocupam a linha toda) */}
+            <Stack gap="sm">
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Descrição Técnica</Text>
+                <Text style={{ whiteSpace: 'pre-wrap' }}>
+                  {viewingEquipment.descricao || 'Nenhuma descrição detalhada informada.'}
+                </Text>
+              </Stack>
+
+              <Stack gap={0} mt="sm">
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Observações</Text>
+                <Text style={{ whiteSpace: 'pre-wrap' }}>
+                  {viewingEquipment.observacao || 'Sem observações adicionais.'}
+                </Text>
+              </Stack>
+
+              {/* NOVO BLOCO: GALERIA DE FOTOS */}
+              {(viewingEquipment as any)?.galeria?.length > 0 && (
+                <Stack gap={0} mt="sm">
+                  <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb="xs">Galeria de Imagens</Text>
+                  <Group gap="sm">
+                    {(viewingEquipment as any).galeria.map((url: string, index: number) => (
+                      <Image 
+                        key={index} 
+                        src={url} 
+                        h={80} 
+                        w={80} 
+                        radius="md" 
+                        className="border border-slate-200"
+                        style={{ objectFit: 'cover', cursor: 'pointer' }} 
+                        onClick={() => window.open(url, '_blank')}
+                        title="Clique para ampliar"
+                      />
+                    ))}
+                  </Group>
+                </Stack>
+              )}
+            </Stack>
+
+            <Group justify="flex-end" mt="md">
+              <AppButton color="gray" onClick={() => setViewingEquipment(null)} variant="subtle">
+                Fechar
+              </AppButton>
+            </Group>
+          </Stack>
+        )}
       </AppModal>
     </>
   )

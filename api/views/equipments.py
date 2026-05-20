@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from api.serializers import serialize_equipment
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json, request_data
 from estoque.forms import EquipamentoForm
-from estoque.models import Categoria, Equipamento
+from estoque.models import Categoria, Equipamento, EquipamentoImagem 
 from estoque.views import baixar_modelo_csv, exportar_inventario
 from rh.models import Colaborador
 
@@ -22,7 +22,10 @@ def _filtered_equipments(params):
     start_date = params.get('data_inicio') or params.get('start_date')
     end_date = params.get('data_fim') or params.get('end_date')
 
-    equipments = Equipamento.objects.filter(excluido=False).select_related('categoria', 'responsavel', 'validador')
+    # NOVO: Adicionado .prefetch_related('galeria') para otimizar a busca das fotos no banco
+    equipments = Equipamento.objects.filter(excluido=False).select_related(
+        'categoria', 'responsavel', 'validador'
+    ).prefetch_related('galeria')
 
     if search:
         equipments = equipments.filter(
@@ -68,13 +71,23 @@ def equipments_collection(request):
         return json_error('Nao foi possivel cadastrar o equipamento.', errors=form_errors(form))
 
     equipment = form.save()
+    
+    # NOVO: Salva as imagens da galeria enviadas na criação
+    fotos_extras = request.FILES.getlist('galeria')
+    for foto in fotos_extras[:5]: # Pega no máximo 5 fotos
+        EquipamentoImagem.objects.create(equipamento=equipment, imagem=foto)
+
     return JsonResponse({'detail': 'Equipamento criado com sucesso.', 'item': serialize_equipment(equipment)}, status=201)
 
 
 @require_http_methods(['GET', 'POST'])
 @api_login_required
 def equipment_detail(request, equipment_id):
-    equipment = get_object_or_404(Equipamento.objects.select_related('categoria', 'responsavel', 'validador'), id=equipment_id)
+    # NOVO: Adicionado .prefetch_related('galeria') aqui também
+    equipment = get_object_or_404(
+        Equipamento.objects.select_related('categoria', 'responsavel', 'validador').prefetch_related('galeria'), 
+        id=equipment_id
+    )
 
     if request.method == 'GET':
         return JsonResponse({'item': serialize_equipment(equipment)})
@@ -84,6 +97,12 @@ def equipment_detail(request, equipment_id):
         return json_error('Nao foi possivel atualizar o equipamento.', errors=form_errors(form))
 
     equipment = form.save()
+    
+    # NOVO: Salva as imagens da galeria enviadas na edição
+    fotos_extras = request.FILES.getlist('galeria')
+    for foto in fotos_extras[:5]:
+        EquipamentoImagem.objects.create(equipamento=equipment, imagem=foto)
+
     return JsonResponse({'detail': 'Equipamento atualizado com sucesso.', 'item': serialize_equipment(equipment)})
 
 

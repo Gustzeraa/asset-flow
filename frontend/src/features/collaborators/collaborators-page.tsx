@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 
-import { ActionIcon, Badge, Group, ScrollArea, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core'
+import { ActionIcon, Badge, Group, ScrollArea, SimpleGrid, Stack, Switch, Text, TextInput, FileInput } from '@mantine/core'
 import { modals } from '@mantine/modals'
 
 import { useLookups } from '@/app/lookups-context'
@@ -17,7 +17,6 @@ import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Collaborator } from '@/types/domain'
-
 
 type CollaboratorsResponse = {
   items: Collaborator[]
@@ -41,28 +40,44 @@ const initialForm: CollaboratorFormState = {
   ativo: true,
 }
 
-
 export function CollaboratorsPage() {
   const { refreshLookups } = useLookups()
+  
+  // Ícones
   const SearchIcon = actionIcons.search
   const AddIcon = actionIcons.add
   const EditIcon = actionIcons.edit
   const DeleteIcon = actionIcons.delete
   const DocumentIcon = actionIcons.document
+  const UploadIcon = actionIcons.upload
+  const ArchiveIcon = actionIcons.document 
+  
   const CollaboratorsIcon = screenIcons.collaborators
   const LinkedAssetIcon = screenIcons.equipments
   const DepartmentIcon = screenIcons.categories
   const PeopleIcon = sectionIcons.collaborators
+  
+  // Estados de Listagem e Busca
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const { data, error, isLoading, reload } = useAsyncData(
     () => apiFetch<CollaboratorsResponse>(`/api/collaborators/?search=${encodeURIComponent(deferredSearch)}`),
     [deferredSearch],
   )
+  
+  // Estados do Formulário de Cadastro/Edição
   const [opened, setOpened] = useState(false)
   const [editing, setEditing] = useState<Collaborator | null>(null)
   const [form, setForm] = useState<CollaboratorFormState>(initialForm)
   const [isSaving, setIsSaving] = useState(false)
+
+  // Estados do Upload de Termo
+  const [uploadingTerm, setUploadingTerm] = useState<Collaborator | null>(null)
+  const [termFile, setTermFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
+  // NOVO: Estado para visualização do histórico de termos
+  const [viewingTerms, setViewingTerms] = useState<Collaborator | null>(null)
 
   const items = useMemo(() => data?.items ?? [], [data?.items])
 
@@ -125,6 +140,37 @@ export function CollaboratorsPage() {
     }
   }
 
+  async function handleUploadSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!uploadingTerm || !termFile) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append('arquivo_assinado', termFile)
+
+    try {
+      await apiFetch(`/api/collaborators/${uploadingTerm.id}/upload-term/`, {
+        method: 'POST',
+        body: formData, 
+      })
+
+      appFeedback.success({
+        title: 'Termo anexado',
+        message: 'O termo assinado foi salvo com sucesso.',
+      })
+      setUploadingTerm(null)
+      setTermFile(null)
+      await reload()
+    } catch (error) {
+      appFeedback.error({
+        title: 'Erro no upload',
+        message: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   function handleTrash(item: Collaborator) {
     modals.openConfirmModal({
       centered: true,
@@ -145,6 +191,38 @@ export function CollaboratorsPage() {
         } catch (error) {
           appFeedback.error({
             title: 'Falha ao mover registro',
+            message: getApiErrorMessage(error),
+          })
+        }
+      },
+    })
+  }
+
+  function handleDeleteTerm(termoId: number) {
+    if (!viewingTerms) return;
+
+    modals.openConfirmModal({
+      centered: true,
+      title: 'Excluir documento assinado',
+      children: <Text size="sm">Tem certeza que deseja apagar este termo permanentemente? O arquivo PDF será destruído.</Text>,
+      labels: { confirm: 'Excluir', cancel: 'Cancelar' },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        try {
+          await apiFetch(`/api/collaborators/${viewingTerms.id}/term/${termoId}/delete/`, {
+            method: 'POST',
+          })
+          appFeedback.success({
+            title: 'Documento excluído',
+            message: 'O termo foi removido do histórico com sucesso.',
+          })
+          
+          // Fecha o modal e recarrega os dados da tabela
+          setViewingTerms(null)
+          await reload()
+        } catch (error) {
+          appFeedback.error({
+            title: 'Falha ao excluir documento',
             message: getApiErrorMessage(error),
           })
         }
@@ -254,16 +332,37 @@ export function CollaboratorsPage() {
               {
                 key: 'acoes',
                 label: 'Acoes',
-                width: 160,
+                width: 180,
                 render: (item) => (
                   <Group gap="xs">
-                    <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light">
+                    <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light" title="Editar">
                       <EditIcon size={15} />
                     </ActionIcon>
-                    <ActionIcon color="grape" onClick={() => window.open(`/api/collaborators/${item.id}/term/`, '_blank', 'noopener,noreferrer')} radius="xl" variant="light">
+                    
+                    {/* Botão para gerar o PDF limpo */}
+                    <ActionIcon color="grape" onClick={() => window.open(`/api/collaborators/${item.id}/term/`, '_blank', 'noopener,noreferrer')} radius="xl" variant="light" title="Imprimir termo pdf">
                       <DocumentIcon size={15} />
                     </ActionIcon>
-                    <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light">
+
+                    {/* Botão para visualizar o PDF assinado (desabilitado se não houver termo) */}
+                    {/* Nota: Lembre de garantir que item.termo_assinado exista no seu type Collaborator */}
+                    <ActionIcon 
+                      color={(item as any).termo_assinado ? 'blue' : 'gray'} 
+                      onClick={() => (item as any).termo_assinado ? setViewingTerms(item) : undefined} 
+                      radius="xl" 
+                      variant="light" 
+                      title="Ver termo assinado"
+                      disabled={!(item as any).termo_assinado}
+                    >
+                      <ArchiveIcon size={15} />
+                    </ActionIcon>
+
+                    {/* Botão para fazer upload de um novo PDF assinado */}
+                    <ActionIcon color="teal" onClick={() => setUploadingTerm(item)} radius="xl" variant="light" title="Anexar termo assinado">
+                      <UploadIcon size={15} />
+                    </ActionIcon>
+
+                    <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light" title="Excluir">
                       <DeleteIcon size={15} />
                     </ActionIcon>
                   </Group>
@@ -280,6 +379,7 @@ export function CollaboratorsPage() {
         </AppCard>
       </Stack>
 
+      {/* Modal de Criação e Edição */}
       <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar colaborador' : 'Novo colaborador'}>
         <form onSubmit={handleSubmit}>
           <Stack gap="xl">
@@ -316,6 +416,98 @@ export function CollaboratorsPage() {
             </Group>
           </Stack>
         </form>
+      </AppModal>
+
+      {/* Modal de Upload de Termo */}
+      <AppModal 
+        onClose={() => { setUploadingTerm(null); setTermFile(null); }} 
+        opened={!!uploadingTerm} 
+        size="md" 
+        title="Anexar termo assinado"
+      >
+        <form onSubmit={handleUploadSubmit}>
+          <Stack gap="xl">
+            <Text size="sm">
+              Selecione o arquivo PDF assinado por <strong>{uploadingTerm?.nome}</strong> para armazenar no sistema.
+            </Text>
+            
+            <FileInput
+              accept="application/pdf"
+              clearable
+              label="Arquivo do termo (PDF)"
+              onChange={setTermFile}
+              placeholder="Clique para selecionar o documento..."
+              required
+              value={termFile}
+            />
+
+            <Group justify="flex-end">
+              <AppButton color="gray" motionDisabled onClick={() => { setUploadingTerm(null); setTermFile(null); }} type="button" variant="subtle">
+                Cancelar
+              </AppButton>
+              <AppButton loading={isUploading} type="submit" disabled={!termFile}>
+                Salvar anexo
+              </AppButton>
+            </Group>
+          </Stack>
+        </form>
+      </AppModal>
+
+      {/* NOVO: Modal de Visualização do Histórico de Termos */}
+      <AppModal 
+        onClose={() => setViewingTerms(null)} 
+        opened={!!viewingTerms} 
+        size="lg" 
+        title={`Termos Assinados - ${viewingTerms?.nome}`}
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Abaixo está o histórico de todos os termos de responsabilidade assinados e armazenados para este colaborador.
+          </Text>
+
+          {(viewingTerms as any)?.termos_assinados?.length ? (
+            <ScrollArea.Autosize mah={300}>
+              <Stack gap="xs">
+                {(viewingTerms as any).termos_assinados.map((termo: any) => (
+                  <Group key={termo.id} justify="space-between" p="sm" style={{ border: '1px solid #eee', borderRadius: '8px' }}>
+                    <Group>
+                      <DocumentIcon size={20} color="gray" />
+                      <div>
+                        <Text fw={500} size="sm">Termo de Responsabilidade</Text>
+                        <Text size="xs" c="dimmed">Enviado em: {termo.data}</Text>
+                      </div>
+                    </Group>
+                    <AppButton 
+                      variant="light" 
+                      size="xs" 
+                      onClick={() => window.open(termo.url, '_blank', 'noopener,noreferrer')}
+                    >
+                      Abrir PDF
+                    </AppButton>
+                    <AppButton 
+                      variant="light" 
+                      size="xs" 
+                      color="red"
+                      onClick={() => handleDeleteTerm(termo.id)}
+                    >
+                      Excluir
+                    </AppButton>
+                  </Group>
+                ))}
+              </Stack>
+            </ScrollArea.Autosize>
+          ) : (
+            <Text size="sm" fs="italic" c="dimmed" ta="center" py="xl">
+              Nenhum termo assinado foi anexado para este colaborador.
+            </Text>
+          )}
+
+          <Group justify="flex-end" mt="md">
+            <AppButton color="gray" onClick={() => setViewingTerms(null)} variant="subtle">
+              Fechar
+            </AppButton>
+          </Group>
+        </Stack>
       </AppModal>
     </>
   )

@@ -11,12 +11,12 @@ from api.serializers import serialize_collaborator
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json
 from estoque.models import Equipamento
 from rh.forms import ColaboradorForm
-from rh.models import Colaborador
+from rh.models import Colaborador, TermoResponsabilidade
 
 
 def _logo_path():
-    candidate = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static', 'img', 'logo.png')
-    return candidate if os.path.exists(candidate) else ''
+    # Substitua esse link pelo link real da logo que você quer usar
+    return "https://yata-apix-cf77d84d-9392-4d4a-b9b8-2175cd361371.s3-object.locaweb.com.br/9b7462f1b9ce4b5584ec06acb59bff69.jpg"
 
 
 @require_http_methods(['GET', 'POST'])
@@ -86,7 +86,7 @@ def bulk_trash(request):
 def term_pdf(request, collaborator_id):
     collaborator = get_object_or_404(Colaborador, id=collaborator_id)
     equipments = collaborator.equipamentos_responsavel.filter(excluido=False).order_by('num_patrimonio')
-    template = get_template('rh/termo_pdf.html')
+    template = get_template('termo_responsabilidade.html')
     html = template.render(
         {
             'colaborador': collaborator,
@@ -101,3 +101,51 @@ def term_pdf(request, collaborator_id):
     if pdf_status.err:
         return HttpResponse('Erro ao gerar PDF.', status=500)
     return response
+
+
+@require_POST
+@api_login_required
+def upload_signed_term(request, collaborator_id):
+    collaborator = get_object_or_404(Colaborador, id=collaborator_id, excluido=False)
+    
+    # Pega o arquivo que virá do React (a chave no FormData deve ser 'arquivo_assinado')
+    arquivo = request.FILES.get('arquivo_assinado')
+    
+    if not arquivo:
+        return json_error('Nenhum arquivo PDF foi enviado na requisição.')
+        
+    # Pega os equipamentos atuais do colaborador para vincular ao termo
+    equipamentos_atuais = collaborator.equipamentos_responsavel.filter(excluido=False)
+    
+    if not equipamentos_atuais.exists():
+        return json_error('O colaborador não possui equipamentos ativos para assinar um termo.')
+
+    # Cria o registro no banco salvando o PDF
+    termo = TermoResponsabilidade.objects.create(
+        colaborador=collaborator,
+        arquivo_assinado=arquivo
+    )
+    
+    # Associa os equipamentos ao termo gerado usando o ManyToMany
+    termo.equipamentos.set(equipamentos_atuais)
+    
+    return JsonResponse({
+        'detail': 'Termo assinado anexado com sucesso.',
+        'termo_id': termo.id
+    }, status=201)
+    
+    
+@require_POST
+@api_login_required
+def delete_signed_term(request, collaborator_id, term_id):
+    # Busca o termo garantindo que ele pertence a esse colaborador
+    termo = get_object_or_404(TermoResponsabilidade, id=term_id, colaborador_id=collaborator_id)
+    
+    # Se o arquivo físico existir no disco, apaga ele primeiro
+    if termo.arquivo_assinado:
+        termo.arquivo_assinado.delete(save=False)
+        
+    # Apaga o registro do banco de dados
+    termo.delete()
+    
+    return JsonResponse({'detail': 'Termo assinado removido com sucesso.'})

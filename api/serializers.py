@@ -73,25 +73,36 @@ def serialize_equipment(equipment):
         'observacao': equipment.observacao,
         'foto_url': equipment.foto.url if equipment.foto else None,
         'excluido': equipment.excluido,
+        'galeria': [img.imagem.url for img in equipment.galeria.all() if img.imagem] if hasattr(equipment, 'galeria') else [],
     }
 
 
 def serialize_collaborator(collaborator, assets=None):
-    if assets is None:
-        assets = collaborator.equipamentos_responsavel.all().order_by('-id')
-
-    return {
+    # ... seus dados atuais do colaborador ...
+    data = {
         'id': collaborator.id,
         'nome': collaborator.nome,
         'cpf': collaborator.cpf,
         'cargo': collaborator.cargo,
-        'email': collaborator.email,
         'departamento': collaborator.departamento,
+        'email': collaborator.email,
         'ativo': collaborator.ativo,
-        'excluido': collaborator.excluido,
-        'ativos_count': assets.count() if hasattr(assets, 'count') else len(assets),
-        'ativos': [serialize_equipment_summary(item) for item in assets],
+        'ativos_count': assets.count() if assets else 0,
+        'ativos': [{'id': a.id, 'nome': a.nome, 'num_patrimonio': a.num_patrimonio} for a in assets] if assets else [],
     }
+
+    # NOVO: Adicionando o histórico de termos assinados
+    # Pega apenas os termos que realmente têm um arquivo anexado
+    termos = collaborator.termos_assinados.exclude(arquivo_assinado='').order_by('-data_emissao')
+    data['termos_assinados'] = [
+        {
+            'id': t.id,
+            'data': t.data_emissao.strftime('%d/%m/%Y %H:%M'),
+            'url': t.arquivo_assinado.url
+        } for t in termos
+    ]
+
+    return data
 
 
 def serialize_consumable(consumable):
