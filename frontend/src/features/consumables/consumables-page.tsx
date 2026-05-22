@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 
 import {
   ActionIcon,
@@ -71,7 +71,6 @@ const initialMovementForm: MovementFormState = {
   observacao: '',
 }
 
-
 export function ConsumablesPage() {
   const { lookups } = useLookups()
   const SearchIcon = actionIcons.search
@@ -83,12 +82,14 @@ export function ConsumablesPage() {
   const AlertIcon = sectionIcons.alerts
   const AvailableIcon = sectionIcons.available
   const StockIcon = sectionIcons.stock
+  
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const { data, error, isLoading, reload } = useAsyncData(
     () => apiFetch<ConsumablesResponse>(`/api/consumables/?search=${encodeURIComponent(deferredSearch)}`),
     [deferredSearch],
   )
+  
   const [opened, setOpened] = useState(false)
   const [movementOpened, setMovementOpened] = useState(false)
   const [editing, setEditing] = useState<Consumable | null>(null)
@@ -98,8 +99,16 @@ export function ConsumablesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isMoving, setIsMoving] = useState(false)
 
+  // NOVO: Estado de Seleção em Lote
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+
   const items = useMemo(() => data?.items ?? [], [data?.items])
   const totalAlerts = items.filter((item) => item.estoque_baixo).length
+
+  // NOVO: Limpa a seleção sempre que os dados recarregam
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [data?.items])
 
   function updateForm<Key extends keyof ConsumableFormState>(key: Key, value: ConsumableFormState[Key]) {
     setForm((current) => ({
@@ -113,6 +122,27 @@ export function ConsumablesPage() {
       ...current,
       [key]: value,
     }))
+  }
+
+  // NOVO: Funções de Controle de Seleção
+  function toggleSelection(id: number, checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (checked) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  function toggleAll(checked: boolean) {
+    if (!checked) {
+      setSelectedIds(new Set())
+      return
+    }
+    setSelectedIds(new Set(items.map((item) => item.id)))
   }
 
   function openCreate() {
@@ -233,7 +263,38 @@ export function ConsumablesPage() {
     })
   }
 
-  if (isLoading) {
+  // NOVO: Função para Excluir em Lote
+  function handleBulkTrash() {
+    modals.openConfirmModal({
+      centered: true,
+      title: 'Mover lote para a lixeira',
+      children: <Text size="sm">Deseja mover os {selectedIds.size} itens selecionados para a lixeira?</Text>,
+      labels: { confirm: 'Mover lote', cancel: 'Cancelar' },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        try {
+          await apiFetch('/api/consumables/bulk/trash/', {
+            method: 'POST',
+            body: JSON.stringify({
+              ids: Array.from(selectedIds),
+            }),
+          })
+          appFeedback.success({
+            title: 'Lote movido',
+            message: 'Os itens selecionados foram enviados para a lixeira.',
+          })
+          await reload()
+        } catch (error) {
+          appFeedback.error({
+            title: 'Falha ao mover lote',
+            message: getApiErrorMessage(error),
+          })
+        }
+      },
+    })
+  }
+
+if (isLoading && !data) {
     return <LoadingPanel label="Carregando almoxarifado..." />
   }
 
@@ -295,6 +356,25 @@ export function ConsumablesPage() {
           />
         </SimpleGrid>
 
+        {/* NOVO: Barra de Ações em Lote (Só aparece se houver selecionados) */}
+        {selectedIds.size > 0 ? (
+          <AppCard className="border-brand-200/80 bg-brand-0/66 shadow-none">
+            <Group justify="space-between" wrap="wrap">
+              <Stack gap={2}>
+                <Text fw={800}>{selectedIds.size} item(ns) selecionado(s)</Text>
+                <Text c="dimmed" size="sm">
+                  Execute ações em lote para agilizar o controle do almoxarifado.
+                </Text>
+              </Stack>
+              <Group>
+                <AppButton color="red" leftSection={<DeleteIcon size={14} />} onClick={handleBulkTrash} variant="light">
+                  Enviar para lixeira
+                </AppButton>
+              </Group>
+            </Group>
+          </AppCard>
+        ) : null}
+
         <AppCard>
           <DataTable<Consumable>
             columns={[
@@ -336,13 +416,13 @@ export function ConsumablesPage() {
                 width: 170,
                 render: (item) => (
                   <Group gap="xs">
-                    <ActionIcon color="teal" onClick={() => openMovement(item)} radius="xl" variant="light">
+                    <ActionIcon color="teal" onClick={() => openMovement(item)} radius="xl" variant="light" title="Movimentar estoque">
                       <MovementIcon size={15} />
                     </ActionIcon>
-                    <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light">
+                    <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light" title="Editar item">
                       <EditIcon size={15} />
                     </ActionIcon>
-                    <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light">
+                    <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light" title="Excluir">
                       <DeleteIcon size={15} />
                     </ActionIcon>
                   </Group>
@@ -355,10 +435,16 @@ export function ConsumablesPage() {
             items={items}
             keyExtractor={(item) => item.id}
             minWidth={880}
+            // NOVO: Integração de Seleção com a DataTable
+            onToggleAll={toggleAll}
+            onToggleRow={toggleSelection}
+            rowId={(item) => item.id}
+            selectedIds={selectedIds}
           />
         </AppCard>
       </Stack>
 
+      {/* Modal de Criação e Edição */}
       <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar item' : 'Novo item de almoxarifado'}>
         <form onSubmit={handleSubmit}>
           <Stack gap="lg">
@@ -394,6 +480,7 @@ export function ConsumablesPage() {
         </form>
       </AppModal>
 
+      {/* Modal de Movimentação */}
       <AppModal onClose={() => setMovementOpened(false)} opened={movementOpened} size="lg" title={`Movimentar ${movementTarget?.nome ?? 'item'}`}>
         <form onSubmit={handleMovementSubmit}>
           <Stack gap="lg">

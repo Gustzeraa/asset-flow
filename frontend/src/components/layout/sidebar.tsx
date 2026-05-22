@@ -5,7 +5,6 @@ import { useAuth } from '@/app/auth-context'
 import { brandIcons, screenIcons } from '@/lib/app-icons'
 import { cn } from '@/lib/utils'
 
-// 1. Reorganizamos os itens para aceitar filhos (children)
 type MenuItem = {
   label: string
   description?: string
@@ -25,19 +24,26 @@ const items: MenuItem[] = [
       { label: 'Categorias', to: '/categorias' }
     ]
   },
-  { label: 'Colaboradores', description: 'RH e responsabilidades', to: '/colaboradores', icon: screenIcons.collaborators },
+  { 
+    label: 'Colaboradores', 
+    description: 'RH e responsabilidades', 
+    icon: screenIcons.collaborators,
+    children: [
+      { label: 'Lista de Colaboradores', to: '/colaboradores' },
+      { label: 'Departamentos', to: '/departamentos' } // Nova rota que vamos criar
+    ]
+  },
   { 
     label: 'Consumíveis', 
     description: 'Almoxarifado e estoque', 
     icon: screenIcons.consumables,
     children: [
       { label: 'Estoque Atual', to: '/consumiveis' },
-      { label: 'Histórico de Mov.', to: '/historico' }
+      { label: 'Movimentações', to: '/historico' }
     ]
   },
 ]
 
-// 2. Componente para links normais (sem sub-menu)
 function SingleNavItem({ item, onNavigate }: { item: MenuItem; onNavigate?: () => void }) {
   const Icon = item.icon
   return (
@@ -67,7 +73,6 @@ function SingleNavItem({ item, onNavigate }: { item: MenuItem; onNavigate?: () =
   )
 }
 
-// 3. Componente "Sanfona" para links com sub-menu
 function NavGroup({ item, onNavigate }: { item: MenuItem; onNavigate?: () => void }) {
   const location = useLocation()
   const Icon = item.icon
@@ -77,9 +82,7 @@ function NavGroup({ item, onNavigate }: { item: MenuItem; onNavigate?: () => voi
 
   return (
     <Box>
-      {/* Removemos os estilos do botão e deixamos ele só como clicador */}
       <UnstyledButton onClick={toggle} className="block w-full text-left">
-        {/* A div aqui dentro garante que o padding (px-2.5) não será ignorado */}
         <div
           className={cn(
             'flex items-center w-full rounded-[22px] px-2.5 py-2 transition-[transform,background-color] duration-150',
@@ -133,7 +136,6 @@ function NavGroup({ item, onNavigate }: { item: MenuItem; onNavigate?: () => voi
   )
 }
 
-// 4. O componente principal que monta o menu
 type SidebarProps = {
   onNavigate?: () => void
 }
@@ -144,7 +146,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
   return (
     <Box className="flex h-full min-h-0 flex-col text-white">
-      {/* Aqui está o BrandIcon sendo usado, o que vai tirar a linha laranja! */}
       <Group align="center" className="mb-5 shrink-0 gap-3">
         <ThemeIcon color="brand.5" radius="xl" size={36} variant="white">
           <BrandIcon size={18} />
@@ -168,7 +169,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             return <SingleNavItem key={item.to!} item={item} onNavigate={onNavigate} />
           })}
 
-          {/* TRAVA DE ADMIN */}
           {user?.is_superuser && (
             <>
               <div className="my-2 border-t border-white/10 mx-4" />

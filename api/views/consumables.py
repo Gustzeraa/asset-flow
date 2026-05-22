@@ -7,8 +7,8 @@ from api.serializers import serialize_consumable, serialize_movement
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json
 from consumiveis.forms import ConsumivelForm, MovimentacaoForm
 from consumiveis.models import Consumivel, MovimentacaoConsumivel
-from consumiveis.views import exportar_movimentacoes_excel
-
+import csv
+from django.http import HttpResponse
 
 def _filtered_movements(params):
     movements = MovimentacaoConsumivel.objects.select_related('consumivel', 'responsavel').order_by('-data')
@@ -126,7 +126,37 @@ def movements_collection(request):
 @require_GET
 @api_login_required
 def export_movements(request):
-    return exportar_movimentacoes_excel(request)
+    movements = _filtered_movements(request.GET)
+    
+    # Prepara a resposta HTTP para baixar um arquivo
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="movimentacoes_almoxarifado.csv"'
+    
+    # Força a codificação UTF-8 com BOM para o Excel ler os acentos (ç, ã, á) corretamente
+    response.write('\ufeff'.encode('utf8'))
+    
+    # Cria o gerador de linhas (usando ponto e vírgula para o Excel separar as colunas no Brasil)
+    writer = csv.writer(response, delimiter=';')
+    
+    # Escreve o cabeçalho
+    writer.writerow(['Data', 'Item', 'Tipo', 'Quantidade', 'Responsável', 'Destino', 'Observação'])
+    
+    # Escreve os dados
+    for m in movements:
+        responsavel_nome = m.responsavel.nome if m.responsavel else 'Não informado'
+        data_formatada = m.data.strftime('%d/%m/%Y %H:%M') if m.data else ''
+        
+        writer.writerow([
+            data_formatada,
+            m.consumivel.nome,
+            m.get_tipo_display(),
+            m.quantidade,
+            responsavel_nome,
+            m.destino or '',
+            m.observacao or ''
+        ])
+        
+    return response
 
 
 @require_POST

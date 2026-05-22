@@ -45,7 +45,7 @@ export function Header({ onToggle, opened }: HeaderProps) {
           <RouteIcon size={18} />
         </ThemeIcon>
         <Stack className="min-w-0" gap={1}>
-          <Text className="text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Prêmio de fluxo de ativos</Text>
+          <Text className="text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Gestão de fluxo de ativos</Text>
           <Text className="truncate text-[1.05rem] font-semibold tracking-[-0.03em] text-slate-800">{title}</Text>
         </Stack>
       </Group>

@@ -1,6 +1,18 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 
-import { ActionIcon, Badge, Group, ScrollArea, SimpleGrid, Stack, Switch, Text, TextInput, FileInput } from '@mantine/core'
+import {
+  ActionIcon,
+  Badge,
+  Group,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  FileInput,
+  Select // NOVO
+} from '@mantine/core'
 import { modals } from '@mantine/modals'
 
 import { useLookups } from '@/app/lookups-context'
@@ -26,7 +38,7 @@ type CollaboratorFormState = {
   nome: string
   cpf: string
   cargo: string
-  departamento: string
+  departamento_id: string
   email: string
   ativo: boolean
 }
@@ -35,14 +47,22 @@ const initialForm: CollaboratorFormState = {
   nome: '',
   cpf: '',
   cargo: '',
-  departamento: '',
+  departamento_id: '',
   email: '',
   ativo: true,
 }
 
+function formatCPF(value: string) {
+  let v = value.replace(/\D/g, "") 
+  v = v.replace(/(\d{3})(\d)/, "$1.$2") 
+  v = v.replace(/(\d{3})(\d)/, "$1.$2") 
+  v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2") 
+  return v.slice(0, 14) 
+}
+
 export function CollaboratorsPage() {
-  const { refreshLookups } = useLookups()
-  
+  const { lookups, refreshLookups } = useLookups()
+
   // Ícones
   const SearchIcon = actionIcons.search
   const AddIcon = actionIcons.add
@@ -50,13 +70,13 @@ export function CollaboratorsPage() {
   const DeleteIcon = actionIcons.delete
   const DocumentIcon = actionIcons.document
   const UploadIcon = actionIcons.upload
-  const ArchiveIcon = actionIcons.document 
-  
+  const ArchiveIcon = actionIcons.document
+
   const CollaboratorsIcon = screenIcons.collaborators
   const LinkedAssetIcon = screenIcons.equipments
   const DepartmentIcon = screenIcons.categories
   const PeopleIcon = sectionIcons.collaborators
-  
+
   // Estados de Listagem e Busca
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
@@ -64,22 +84,25 @@ export function CollaboratorsPage() {
     () => apiFetch<CollaboratorsResponse>(`/api/collaborators/?search=${encodeURIComponent(deferredSearch)}`),
     [deferredSearch],
   )
-  
-  // Estados do Formulário de Cadastro/Edição
+
   const [opened, setOpened] = useState(false)
   const [editing, setEditing] = useState<Collaborator | null>(null)
   const [form, setForm] = useState<CollaboratorFormState>(initialForm)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Estados do Upload de Termo
   const [uploadingTerm, setUploadingTerm] = useState<Collaborator | null>(null)
   const [termFile, setTermFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
-  // NOVO: Estado para visualização do histórico de termos
   const [viewingTerms, setViewingTerms] = useState<Collaborator | null>(null)
 
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+
   const items = useMemo(() => data?.items ?? [], [data?.items])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [data?.items])
 
   function openCreate() {
     setEditing(null)
@@ -93,7 +116,7 @@ export function CollaboratorsPage() {
       nome: item.nome,
       cpf: item.cpf ?? '',
       cargo: item.cargo,
-      departamento: item.departamento,
+      departamento_id: item.departamento_id ? String(item.departamento_id) : '',
       email: item.email,
       ativo: item.ativo,
     })
@@ -107,20 +130,45 @@ export function CollaboratorsPage() {
     }))
   }
 
+  function toggleSelection(id: number, checked: boolean) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (checked) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  function toggleAll(checked: boolean) {
+    if (!checked) {
+      setSelectedIds(new Set())
+      return
+    }
+    setSelectedIds(new Set(items.map((item) => item.id)))
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSaving(true)
+
+    // Ajusta o payload para converter o departamento_id para int ou null
+    const payload: any = { ...form }
+    payload.departamento = form.departamento_id ? parseInt(form.departamento_id, 10) : null
+    delete payload.departamento_id // Limpamos essa chave para enviar certinho pro Django
 
     try {
       if (editing) {
         await apiFetch(`/api/collaborators/${editing.id}/`, {
           method: 'POST',
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         })
       } else {
         await apiFetch('/api/collaborators/', {
           method: 'POST',
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         })
       }
 
@@ -151,7 +199,7 @@ export function CollaboratorsPage() {
     try {
       await apiFetch(`/api/collaborators/${uploadingTerm.id}/upload-term/`, {
         method: 'POST',
-        body: formData, 
+        body: formData,
       })
 
       appFeedback.success({
@@ -198,6 +246,36 @@ export function CollaboratorsPage() {
     })
   }
 
+  function handleBulkTrash() {
+    modals.openConfirmModal({
+      centered: true,
+      title: 'Mover lote para a lixeira',
+      children: <Text size="sm">Deseja mover os {selectedIds.size} colaboradores selecionados para a lixeira?</Text>,
+      labels: { confirm: 'Mover lote', cancel: 'Cancelar' },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        try {
+          await apiFetch('/api/collaborators/bulk/trash/', {
+            method: 'POST',
+            body: JSON.stringify({
+              ids: Array.from(selectedIds),
+            }),
+          })
+          appFeedback.success({
+            title: 'Lote movido',
+            message: 'Os colaboradores selecionados foram enviados para a lixeira.',
+          })
+          await Promise.all([reload(), refreshLookups()])
+        } catch (error) {
+          appFeedback.error({
+            title: 'Falha ao mover lote',
+            message: getApiErrorMessage(error),
+          })
+        }
+      },
+    })
+  }
+
   function handleDeleteTerm(termoId: number) {
     if (!viewingTerms) return;
 
@@ -216,8 +294,6 @@ export function CollaboratorsPage() {
             title: 'Documento excluído',
             message: 'O termo foi removido do histórico com sucesso.',
           })
-          
-          // Fecha o modal e recarrega os dados da tabela
           setViewingTerms(null)
           await reload()
         } catch (error) {
@@ -230,7 +306,7 @@ export function CollaboratorsPage() {
     })
   }
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return <LoadingPanel label="Carregando colaboradores..." />
   }
 
@@ -292,6 +368,24 @@ export function CollaboratorsPage() {
           />
         </SimpleGrid>
 
+        {selectedIds.size > 0 ? (
+          <AppCard className="border-brand-200/80 bg-brand-0/66 shadow-none">
+            <Group justify="space-between" wrap="wrap">
+              <Stack gap={2}>
+                <Text fw={800}>{selectedIds.size} colaborador(es) selecionado(s)</Text>
+                <Text c="dimmed" size="sm">
+                  Execute ações em lote mantendo o fluxo do inventário consistente.
+                </Text>
+              </Stack>
+              <Group>
+                <AppButton color="red" leftSection={<DeleteIcon size={14} />} onClick={handleBulkTrash} variant="light">
+                  Enviar para lixeira
+                </AppButton>
+              </Group>
+            </Group>
+          </AppCard>
+        ) : null}
+
         <AppCard>
           <DataTable<Collaborator>
             columns={[
@@ -338,26 +432,22 @@ export function CollaboratorsPage() {
                     <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light" title="Editar">
                       <EditIcon size={15} />
                     </ActionIcon>
-                    
-                    {/* Botão para gerar o PDF limpo */}
+
                     <ActionIcon color="grape" onClick={() => window.open(`/api/collaborators/${item.id}/term/`, '_blank', 'noopener,noreferrer')} radius="xl" variant="light" title="Imprimir termo pdf">
                       <DocumentIcon size={15} />
                     </ActionIcon>
 
-                    {/* Botão para visualizar o PDF assinado (desabilitado se não houver termo) */}
-                    {/* Nota: Lembre de garantir que item.termo_assinado exista no seu type Collaborator */}
-                    <ActionIcon 
-                      color={(item as any).termo_assinado ? 'blue' : 'gray'} 
-                      onClick={() => (item as any).termo_assinado ? setViewingTerms(item) : undefined} 
-                      radius="xl" 
-                      variant="light" 
+                    <ActionIcon
+                      color={(item as any).termo_assinado ? 'blue' : 'gray'}
+                      onClick={() => (item as any).termo_assinado ? setViewingTerms(item) : undefined}
+                      radius="xl"
+                      variant="light"
                       title="Ver termo assinado"
                       disabled={!(item as any).termo_assinado}
                     >
                       <ArchiveIcon size={15} />
                     </ActionIcon>
 
-                    {/* Botão para fazer upload de um novo PDF assinado */}
                     <ActionIcon color="teal" onClick={() => setUploadingTerm(item)} radius="xl" variant="light" title="Anexar termo assinado">
                       <UploadIcon size={15} />
                     </ActionIcon>
@@ -375,19 +465,40 @@ export function CollaboratorsPage() {
             items={items}
             keyExtractor={(item) => item.id}
             minWidth={880}
+            onToggleAll={toggleAll}
+            onToggleRow={toggleSelection}
+            rowId={(item) => item.id}
+            selectedIds={selectedIds}
           />
         </AppCard>
       </Stack>
 
-      {/* Modal de Criação e Edição */}
       <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar colaborador' : 'Novo colaborador'}>
         <form onSubmit={handleSubmit}>
           <Stack gap="xl">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
               <TextInput label="Nome completo" onChange={(event) => updateField('nome', event.currentTarget.value)} required value={form.nome} />
-              <TextInput label="CPF" onChange={(event) => updateField('cpf', event.currentTarget.value)} placeholder="000.000.000-00" required value={form.cpf} />
+              <TextInput
+                label="CPF"
+                onChange={(event) => updateField('cpf', formatCPF(event.currentTarget.value))}
+                placeholder="000.000.000-00"
+                required
+                value={form.cpf}
+                maxLength={14}
+              />
               <TextInput label="Cargo" onChange={(event) => updateField('cargo', event.currentTarget.value)} required value={form.cargo} />
-              <TextInput label="Departamento" onChange={(event) => updateField('departamento', event.currentTarget.value)} required value={form.departamento} />
+
+              {/* MODIFICADO: Substituído TextInput por Select pegando do Lookup */}
+              <Select
+                data={lookups?.departamentos.map((d) => ({ value: String(d.id), label: d.nome })) ?? []}
+                label="Departamento"
+                onChange={(value) => updateField('departamento_id', value ?? '')}
+                placeholder="Selecione o departamento"
+                required
+                value={form.departamento_id}
+                searchable
+              />
+
               <TextInput className="md:col-span-2" label="Email" onChange={(event) => updateField('email', event.currentTarget.value)} required type="email" value={form.email} />
             </SimpleGrid>
 
@@ -418,11 +529,10 @@ export function CollaboratorsPage() {
         </form>
       </AppModal>
 
-      {/* Modal de Upload de Termo */}
-      <AppModal 
-        onClose={() => { setUploadingTerm(null); setTermFile(null); }} 
-        opened={!!uploadingTerm} 
-        size="md" 
+      <AppModal
+        onClose={() => { setUploadingTerm(null); setTermFile(null); }}
+        opened={!!uploadingTerm}
+        size="md"
         title="Anexar termo assinado"
       >
         <form onSubmit={handleUploadSubmit}>
@@ -430,7 +540,7 @@ export function CollaboratorsPage() {
             <Text size="sm">
               Selecione o arquivo PDF assinado por <strong>{uploadingTerm?.nome}</strong> para armazenar no sistema.
             </Text>
-            
+
             <FileInput
               accept="application/pdf"
               clearable
@@ -453,11 +563,10 @@ export function CollaboratorsPage() {
         </form>
       </AppModal>
 
-      {/* NOVO: Modal de Visualização do Histórico de Termos */}
-      <AppModal 
-        onClose={() => setViewingTerms(null)} 
-        opened={!!viewingTerms} 
-        size="lg" 
+      <AppModal
+        onClose={() => setViewingTerms(null)}
+        opened={!!viewingTerms}
+        size="lg"
         title={`Termos Assinados - ${viewingTerms?.nome}`}
       >
         <Stack gap="md">
@@ -477,16 +586,16 @@ export function CollaboratorsPage() {
                         <Text size="xs" c="dimmed">Enviado em: {termo.data}</Text>
                       </div>
                     </Group>
-                    <AppButton 
-                      variant="light" 
-                      size="xs" 
+                    <AppButton
+                      variant="light"
+                      size="xs"
                       onClick={() => window.open(termo.url, '_blank', 'noopener,noreferrer')}
                     >
                       Abrir PDF
                     </AppButton>
-                    <AppButton 
-                      variant="light" 
-                      size="xs" 
+                    <AppButton
+                      variant="light"
+                      size="xs"
                       color="red"
                       onClick={() => handleDeleteTerm(termo.id)}
                     >

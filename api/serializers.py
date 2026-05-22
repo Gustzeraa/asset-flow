@@ -1,6 +1,6 @@
 from consumiveis.models import Consumivel, MovimentacaoConsumivel
 from estoque.models import Categoria, Equipamento
-from rh.models import Colaborador
+from rh.models import Colaborador, Departamento
 
 
 def serialize_user(user):
@@ -28,6 +28,18 @@ def serialize_category(category, equipment_count=None):
     return payload
 
 
+def serialize_department(department, collaborator_count=None, equipment_count=None):
+    payload = {
+        'id': department.id,
+        'nome': department.nome,
+    }
+    if collaborator_count is not None:
+        payload['colaboradores_count'] = collaborator_count
+    if equipment_count is not None:
+        payload['equipamentos_count'] = equipment_count
+    return payload
+
+
 def serialize_collaborator_summary(collaborator):
     if not collaborator:
         return None
@@ -36,7 +48,8 @@ def serialize_collaborator_summary(collaborator):
         'id': collaborator.id,
         'nome': collaborator.nome,
         'cargo': collaborator.cargo,
-        'departamento': collaborator.departamento,
+        'departamento_id': collaborator.departamento_id,
+        'departamento': collaborator.departamento.nome if collaborator.departamento else 'Sem departamento',
         'email': collaborator.email,
         'ativo': collaborator.ativo,
     }
@@ -78,21 +91,19 @@ def serialize_equipment(equipment):
 
 
 def serialize_collaborator(collaborator, assets=None):
-    # ... seus dados atuais do colaborador ...
     data = {
         'id': collaborator.id,
         'nome': collaborator.nome,
         'cpf': collaborator.cpf,
         'cargo': collaborator.cargo,
-        'departamento': collaborator.departamento,
+        'departamento_id': collaborator.departamento_id,
+        'departamento': collaborator.departamento.nome if collaborator.departamento else 'Sem departamento',
         'email': collaborator.email,
         'ativo': collaborator.ativo,
         'ativos_count': assets.count() if assets else 0,
         'ativos': [{'id': a.id, 'nome': a.nome, 'num_patrimonio': a.num_patrimonio} for a in assets] if assets else [],
     }
 
-    # NOVO: Adicionando o histórico de termos assinados
-    # Pega apenas os termos que realmente têm um arquivo anexado
     termos = collaborator.termos_assinados.exclude(arquivo_assinado='').order_by('-data_emissao')
     data['termos_assinados'] = [
         {
@@ -163,9 +174,10 @@ def serialize_dashboard_payload(*, totals, low_stock, latest_equipments, latest_
     }
 
 
-def serialize_lookups_payload(*, categories, collaborators):
+def serialize_lookups_payload(*, categories, collaborators, departments):
     return {
         'categorias': [serialize_category(item) for item in categories],
+        'departamentos': [serialize_department(item) for item in departments], # NOVO
         'colaboradores': [serialize_collaborator_summary(item) for item in collaborators],
         'equipamento_status': serialize_choices(Equipamento.STATUS_CHOICES),
         'consumivel_unidades': serialize_choices(Consumivel.UNIDADES),

@@ -11,8 +11,9 @@ from api.serializers import serialize_equipment
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json, request_data
 from estoque.forms import EquipamentoForm
 from estoque.models import Categoria, Equipamento, EquipamentoImagem 
-from estoque.views import baixar_modelo_csv, exportar_inventario
 from rh.models import Colaborador
+import csv
+from django.http import HttpResponse
 
 
 def _filtered_equipments(params):
@@ -257,10 +258,69 @@ def import_inventory(request):
 @require_GET
 @api_login_required
 def export_inventory(request):
-    return exportar_inventario(request)
+    from estoque.models import Equipamento
+    equipments = Equipamento.objects.filter(excluido=False).order_by('nome')
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="inventario_completo_equipamentos.csv"'
+    
+    # Força a codificação UTF-8 com BOM para o Excel abrir com acentos corretos
+    response.write('\ufeff'.encode('utf8'))
+    
+    writer = csv.writer(response, delimiter=';')
+    
+    # NOVO: Cabeçalho com todos os campos disponíveis no banco de dados
+    writer.writerow([
+        'Patrimônio', 
+        'Nome', 
+        'Categoria', 
+        'Tipo',
+        'Status', 
+        'Local', 
+        'Departamento',
+        'Responsável', 
+        'Validador',
+        'Data de Aquisição',
+        'Descrição',
+        'Observações'
+    ])
+    
+    for eq in equipments:
+        # Tratamento para não quebrar caso algum campo de relacionamento esteja vazio
+        categoria = eq.categoria.nome if eq.categoria else ''
+        responsavel = eq.responsavel.nome if eq.responsavel else 'Sem responsável'
+        validador = eq.validador.nome if getattr(eq, 'validador', None) else ''
+        data_formatada = eq.data.strftime('%d/%m/%Y') if eq.data else ''
+        
+        # Preenchendo as colunas na mesma ordem do cabeçalho
+        writer.writerow([
+            eq.num_patrimonio or '',
+            eq.nome or '',
+            categoria,
+            eq.tipo or '',
+            eq.get_status_display() or '',
+            eq.local or '',
+            eq.departamento or '',
+            responsavel,
+            validador,
+            data_formatada,
+            eq.descricao or '',
+            eq.observacao or ''
+        ])
+        
+    return response
 
 
 @require_GET
 @api_login_required
 def download_template(request):
-    return baixar_modelo_csv(request)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="modelo_importacao_equipamentos.csv"'
+    
+    response.write('\ufeff'.encode('utf8'))
+    writer = csv.writer(response, delimiter=';')
+    
+    # Cabeçalho do Modelo
+    writer.writerow(['nome', 'num_patrimonio', 'categoria_id', 'status', 'local', 'tipo'])
+    
+    return response

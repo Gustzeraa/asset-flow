@@ -1,7 +1,7 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 
 import { ActionIcon, Group, Stack, Text, TextInput } from '@mantine/core'
-import { modals } from '@mantine/modals'
+import { modals } from '@mantine/modals' // VOLTOU: O modals para perguntar se tem certeza
 
 import { useLookups } from '@/app/lookups-context'
 import { LoadingPanel } from '@/components/feedback/loading-panel'
@@ -14,28 +14,28 @@ import { PageHeader } from '@/components/ui/page-header'
 import { useAsyncData } from '@/hooks/use-async-data'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
-import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
-import type { Category } from '@/types/domain'
+import { actionIcons, sectionIcons } from '@/lib/app-icons'
+import type { Department } from '@/types/domain'
 
-
-type CategoriesResponse = {
-  items: Category[]
+type DepartmentsResponse = {
+  items: Department[]
 }
 
-
-export function CategoriesPage() {
+export function DepartmentsPage() {
   const { refreshLookups } = useLookups()
-  const { data, error, isLoading, reload } = useAsyncData(() => apiFetch<CategoriesResponse>('/api/categories/'))
+  const { data, error, isLoading, reload } = useAsyncData(() => apiFetch<DepartmentsResponse>('/api/departments/'))
+  
   const SearchIcon = actionIcons.search
   const AddIcon = actionIcons.add
   const EditIcon = actionIcons.edit
-  const DeleteIcon = actionIcons.delete
-  const CategoriesIcon = screenIcons.categories
-  const TaxonomyIcon = sectionIcons.categories
+  const DeleteIcon = actionIcons.delete // VOLTOU: Ícone de lixeira
+  
+  const DepartmentsIcon = sectionIcons.categories
+  
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [opened, setOpened] = useState(false)
-  const [editing, setEditing] = useState<Category | null>(null)
+  const [editing, setEditing] = useState<Department | null>(null)
   const [nome, setNome] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -51,7 +51,7 @@ export function CategoriesPage() {
     setOpened(true)
   }
 
-  function openEdit(item: Category) {
+  function openEdit(item: Department) {
     setEditing(item)
     setNome(item.nome)
     setOpened(true)
@@ -63,26 +63,26 @@ export function CategoriesPage() {
 
     try {
       if (editing) {
-        await apiFetch(`/api/categories/${editing.id}/`, {
+        await apiFetch(`/api/departments/${editing.id}/`, {
           method: 'POST',
           body: JSON.stringify({ nome }),
         })
       } else {
-        await apiFetch('/api/categories/', {
+        await apiFetch('/api/departments/', {
           method: 'POST',
           body: JSON.stringify({ nome }),
         })
       }
 
       appFeedback.success({
-        title: editing ? 'Categoria atualizada' : 'Categoria criada',
+        title: editing ? 'Departamento atualizado' : 'Departamento criado',
         message: 'As informacoes foram salvas com sucesso.',
       })
       setOpened(false)
       await Promise.all([reload(), refreshLookups()])
     } catch (error) {
       appFeedback.error({
-        title: 'Falha ao salvar categoria',
+        title: 'Falha ao salvar departamento',
         message: getApiErrorMessage(error),
       })
     } finally {
@@ -90,26 +90,27 @@ export function CategoriesPage() {
     }
   }
 
-  function handleDelete(item: Category) {
+  // NOVO: Função para deletar
+  function handleDelete(item: Department) {
     modals.openConfirmModal({
       centered: true,
-      title: 'Excluir categoria',
-      children: <Text size="sm">Deseja realmente excluir a categoria "{item.nome}"?</Text>,
+      title: 'Excluir departamento',
+      children: <Text size="sm">Deseja realmente excluir o departamento "{item.nome}"? Os colaboradores vinculados ficarão sem departamento.</Text>,
       labels: { confirm: 'Excluir', cancel: 'Cancelar' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
-          await apiFetch(`/api/categories/${item.id}/`, {
+          await apiFetch(`/api/departments/${item.id}/`, {
             method: 'DELETE',
           })
           appFeedback.success({
-            title: 'Categoria excluida',
-            message: 'A categoria foi removida do cadastro.',
+            title: 'Departamento excluído',
+            message: 'O departamento foi removido do cadastro.',
           })
           await Promise.all([reload(), refreshLookups()])
         } catch (error) {
           appFeedback.error({
-            title: 'Nao foi possivel excluir',
+            title: 'Não foi possível excluir',
             message: getApiErrorMessage(error),
           })
         }
@@ -117,15 +118,16 @@ export function CategoriesPage() {
     })
   }
 
-  if (isLoading) {
-    return <LoadingPanel label="Carregando categorias..." />
+  // Corrigido para não perder o foco ao buscar
+  if (isLoading && !data) {
+    return <LoadingPanel label="Carregando departamentos..." />
   }
 
   if (!data) {
     return (
       <AppCard>
         <Stack gap="md">
-          <Text fw={700}>Falha ao carregar categorias.</Text>
+          <Text fw={700}>Falha ao carregar departamentos.</Text>
           <Text c="dimmed">{error}</Text>
           <AppButton onClick={() => void reload()} w="fit-content">
             Tentar novamente
@@ -144,49 +146,43 @@ export function CategoriesPage() {
               <TextInput
                 leftSection={<SearchIcon size={14} />}
                 onChange={(event) => setSearch(event.currentTarget.value)}
-                placeholder="Buscar categoria"
+                placeholder="Buscar departamento"
                 value={search}
                 w={240}
               />
               <AppButton leftSection={<AddIcon size={14} />} onClick={openCreate}>
-                Nova categoria
+                Novo departamento
               </AppButton>
             </Group>
           }
-          description="Padronize a estrutura do inventario para manter filtros, relatórios e cadastros consistentes."
-          icon={<CategoriesIcon size={18} />}
-          title="Categorias de ativos"
+          description="Gerencie os setores da empresa para manter a vinculação de colaboradores e equipamentos organizada."
+          icon={<DepartmentsIcon size={18} />}
+          title="Departamentos Corporativos"
         />
 
         <Group grow>
           <MetricCard
-            description="Taxonomia ativa para classificacao do parque."
-            icon={<TaxonomyIcon size={18} />}
-            title="Categorias cadastradas"
+            description="Setores disponíveis para alocação de colaboradores."
+            icon={<DepartmentsIcon size={18} />}
+            title="Departamentos cadastrados"
             value={data.items.length}
           />
         </Group>
 
         <AppCard>
-          <DataTable<Category>
+          <DataTable<Department>
             columns={[
               {
                 key: 'nome',
-                label: 'Categoria',
+                label: 'Departamento',
                 render: (item) => (
                   <Stack gap={0}>
                     <Text fw={700}>{item.nome}</Text>
                     <Text c="dimmed" size="xs">
-                      Estrutura visual e operacional do inventario
+                      Setor organizacional
                     </Text>
                   </Stack>
                 ),
-              },
-              {
-                key: 'equipamentos_count',
-                label: 'Itens vinculados',
-                width: 180,
-                render: (item) => item.equipamentos_count ?? 0,
               },
               {
                 key: 'acoes',
@@ -197,6 +193,7 @@ export function CategoriesPage() {
                     <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light">
                       <EditIcon size={15} />
                     </ActionIcon>
+                    {/* NOVO: Botão de Lixeira */}
                     <ActionIcon color="red" onClick={() => handleDelete(item)} radius="xl" variant="light">
                       <DeleteIcon size={15} />
                     </ActionIcon>
@@ -204,9 +201,9 @@ export function CategoriesPage() {
                 ),
               },
             ]}
-            emptyDescription="Crie categorias para classificar notebooks, monitores, periféricos e demais ativos."
-            emptyIcon={<CategoriesIcon size={18} />}
-            emptyTitle="Nenhuma categoria encontrada"
+            emptyDescription="Crie departamentos como TI, RH, Comercial e Administrativo."
+            emptyIcon={<DepartmentsIcon size={18} />}
+            emptyTitle="Nenhum departamento encontrado"
             items={items}
             keyExtractor={(item) => item.id}
             minWidth={680}
@@ -214,13 +211,13 @@ export function CategoriesPage() {
         </AppCard>
       </Stack>
 
-      <AppModal onClose={() => setOpened(false)} opened={opened} size="lg" title={editing ? 'Editar categoria' : 'Nova categoria'}>
+      <AppModal onClose={() => setOpened(false)} opened={opened} size="lg" title={editing ? 'Editar departamento' : 'Novo departamento'}>
         <form onSubmit={handleSubmit}>
           <Stack gap="lg">
             <TextInput
-              label="Nome da categoria"
+              label="Nome do departamento"
               onChange={(event) => setNome(event.currentTarget.value)}
-              placeholder="Ex: Eletrônicos, Imobilizados, Periféricos"
+              placeholder="Ex: Recursos Humanos"
               required
               value={nome}
             />
@@ -229,7 +226,7 @@ export function CategoriesPage() {
                 Cancelar
               </AppButton>
               <AppButton loading={isSaving} type="submit">
-                Salvar categoria
+                Salvar departamento
               </AppButton>
             </Group>
           </Stack>

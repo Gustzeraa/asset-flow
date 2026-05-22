@@ -422,8 +422,8 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     })
   }
 
-  if (isLoading) {
-    return <LoadingPanel label="Carregando inventario..." />
+if (isLoading && !data) {
+    return <LoadingPanel label="Carregando equipamentos..." />
   }
 
   if (!data) {
@@ -498,7 +498,7 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
                 { value: 'nome', label: 'Nome A-Z' },
                 { value: '-nome', label: 'Nome Z-A' },
               ]}
-              label="Ordenacao"
+              label="Ordenação"
               onChange={setOrdenacao}
               placeholder="Padrao"
               value={ordenacao}

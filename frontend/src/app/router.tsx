@@ -7,6 +7,7 @@ import { AppShellLayout } from '@/components/layout/app-shell-layout'
 import { LoadingPanel } from '@/components/feedback/loading-panel'
 import { LoginPage } from '@/features/auth/login-page'
 import { CategoriesPage } from '@/features/categories/categories-page'
+import { DepartmentsPage } from '@/features/departments/departments-page'
 import { CollaboratorsPage } from '@/features/collaborators/collaborators-page'
 import { ConsumablesPage } from '@/features/consumables/consumables-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
@@ -97,6 +98,7 @@ export function AppRouter() {
           <Route element={<EquipmentsPage />} path="/equipamentos" />
           <Route element={<CategoriesPage />} path="/categorias" />
           <Route element={<CollaboratorsPage />} path="/colaboradores" />
+          <Route element={<DepartmentsPage />} path="/departamentos" />
           <Route element={<ConsumablesPage />} path="/consumiveis" />
           <Route element={<MovementsPage />} path="/historico" />
           <Route element={<TrashPage />} path="/lixeira" />

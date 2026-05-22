@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import auth, categories, collaborators, consumables, dashboard, equipments, lookups, trash, users
+from .views import auth, categories, collaborators, consumables, dashboard, equipments, lookups, trash, users, departments
 
 
 urlpatterns = [
@@ -12,6 +12,8 @@ urlpatterns = [
     path('lookups/', lookups.lookups, name='api_lookups'),
     path('categories/', categories.categories_collection, name='api_categories'),
     path('categories/<int:category_id>/', categories.category_detail, name='api_category_detail'),
+    path('departments/', departments.departments_collection, name='api_departments'),
+    path('departments/<int:department_id>/', departments.department_detail, name='api_department_detail'),
     path('equipments/', equipments.equipments_collection, name='api_equipments'),
     path('equipments/export/', equipments.export_inventory, name='api_equipments_export'),
     path('equipments/import/', equipments.import_inventory, name='api_equipments_import'),

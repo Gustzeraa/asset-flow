@@ -25,14 +25,8 @@ from .views import frontend_app
 urlpatterns = [
     path('api/', include('api.urls')),
     path('admin/', admin.site.urls),
-    path('favicon.svg', RedirectView.as_view(url='/assets/favicon.svg', permanent=False)),
-    path('contas/login/', RedirectView.as_view(url='/login', permanent=False)),
-    path('contas/', include('django.contrib.auth.urls')),
-    path('legacy/rh/', include('rh.urls')),
-    path('legacy/almoxarifado/', include('consumiveis.urls')),
-    path('legacy/', include('estoque.urls')),
-    re_path(r'^(?!api/|admin/|contas/|legacy/|media/|assets/|favicon\.svg$).*$' , frontend_app, name='frontend_app'),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

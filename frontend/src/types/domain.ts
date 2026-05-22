@@ -18,10 +18,19 @@ export type Category = {
   equipamentos_count?: number
 }
 
+// NOVO TIPO: Departamentos
+export type Department = {
+  id: number
+  nome: string
+  colaboradores_count?: number
+  equipamentos_count?: number
+}
+
 export type CollaboratorSummary = {
   id: number
   nome: string
   cargo: string
+  departamento_id: number | null // Adicionado ID
   departamento: string
   email: string
   ativo: boolean
@@ -63,6 +72,7 @@ export type Collaborator = {
   cpf: string | null
   cargo: string
   email: string
+  departamento_id: number | null // Adicionado ID
   departamento: string
   ativo: boolean
   excluido: boolean
@@ -119,6 +129,7 @@ export type DashboardData = {
 
 export type Lookups = {
   categorias: Category[]
+  departamentos: Department[] // NOVO: Adicionado à lista de lookups globais
   colaboradores: CollaboratorSummary[]
   equipamento_status: ApiOption[]
   consumivel_unidades: ApiOption[]
