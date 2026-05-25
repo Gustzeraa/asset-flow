@@ -126,7 +126,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/assets/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STATICFILES_DIRS = []
 if (FRONTEND_DIST_DIR / 'assets').exists():
@@ -143,32 +143,30 @@ LOGIN_REDIRECT_URL = '/dashboard'
 LOGIN_URL = '/login'
 LOGOUT_REDIRECT_URL = '/login'
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-]
-
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-# Permite que qualquer URL do Vercel faça requisições para a nossa API
-CORS_ALLOW_ALL_ORIGINS = True
+# ==========================================
+# CONFIGURAÇÕES DE SEGURANÇA (CORS / CSRF)
+# ==========================================
 
+# 1. Libera o Django para aceitar formulários/POSTs dessas URLs
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.up.railway.app',
-    'https://*.vercel.app',  
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://asset-flow-system.vercel.app',
+    'https://asset-flow-production-17bf.up.railway.app'
 ]
 
+# 2. Libera o Django para enviar dados da API para essas URLs
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://asset-flow-system.vercel.app", 
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://asset-flow-system.vercel.app'
 ]
 
+# 3. Regras de cookies (Essencial para o login funcionar entre Vercel e Railway)
 CORS_ALLOW_CREDENTIALS = True
 CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
-
-# Configuração para o WhiteNoise servir os arquivos do Django Admin na nuvem
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
