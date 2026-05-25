@@ -1,5 +1,5 @@
 // Coloque a URL do seu Railway aqui (sem a barra / no final)
-const API_BASE_URL = 'https://asset-flow-production-17bf.up.railway.app'
+const API_BASE_URL = 'https://asset-flow-system.vercel.app'
 
 type FetchInit = RequestInit & {
   skipJson?: boolean
