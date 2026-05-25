@@ -2,4 +2,4 @@
 python = true
 
 [phases.setup]
-aptPkgs = ["...", "pkg-config", "libcairo2-dev", "libpango1.0-dev"]
+aptPkgs = ["...", "libcairo2-dev", "pkg-config", "python3-dev", "libpango1.0-dev", "libglib2.0-dev", "libgirepository1.0-dev"]
