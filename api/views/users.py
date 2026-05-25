@@ -18,7 +18,8 @@ def users_collection(request):
         for u in users:
             data.append({
                 "id": u.id,
-                "name": u.get_full_name() or u.username,
+                # Devolve o username exato que a pessoa usa para logar
+                "name": u.username, 
                 "email": u.email,
                 "role": "admin" if u.is_superuser else "operador",
                 "status": "ativo" if u.is_active else "inativo"
@@ -28,31 +29,28 @@ def users_collection(request):
     elif request.method == "POST":
         try:
             body = json.loads(request.body)
-            email = body.get("email")
-            name = body.get("name", "")
+            
+            # Pega o 'username' ou o 'name' que vier do React
+            username = body.get("username") or body.get("name")
+            email = body.get("email", "")
             password = body.get("password")
-            role = body.get("role", "operador")
-            status = body.get("status", "ativo")
-
-            if not email or not password:
-                return JsonResponse({"error": "E-mail e senha são obrigatórios."}, status=400)
             
-            # Evita criar duplicados
-            if User.objects.filter(username=email).exists():
-                return JsonResponse({"error": "Este e-mail já está em uso."}, status=400)
+            role = str(body.get("role", "operador")).lower().strip()
+            status = str(body.get("status", "ativo")).lower().strip()
 
-            # Usamos o email como username (padrão em sistemas modernos)
-            user = User.objects.create_user(username=email, email=email, password=password)
+            if not username or not password:
+                return JsonResponse({"error": "Usuário e senha são obrigatórios."}, status=400)
             
-            # O Django separa nome e sobrenome, então vamos dividir a string
-            name_parts = name.split(" ", 1)
-            user.first_name = name_parts[0]
-            if len(name_parts) > 1:
-                user.last_name = name_parts[1]
+            # Verifica duplicidade pelo username agora (e não mais pelo e-mail)
+            if User.objects.filter(username=username).exists():
+                return JsonResponse({"error": "Este nome de usuário já está em uso."}, status=400)
+
+            # Cria o usuário com o username real que a pessoa digitou
+            user = User.objects.create_user(username=username, email=email, password=password)
                 
             user.is_superuser = (role == 'admin')
-            user.is_staff = (role == 'admin') # Permite acessar o painel /admin do Django
-            user.is_active = (status == 'ativo')
+            user.is_staff = (role == 'admin') 
+            user.is_active = (status in ['ativo', 'true', '1']) 
             user.save()
 
             return JsonResponse({"message": "Usuário criado com sucesso", "id": user.id}, status=201)
@@ -61,9 +59,6 @@ def users_collection(request):
             return JsonResponse({"error": str(e)}, status=400)
 
 
-# ---------------------------------------------------------
-# Rota Específica: /api/users/<id>/ (Atualiza ou Deleta)
-# ---------------------------------------------------------
 @require_http_methods(["PUT", "DELETE"])
 def user_detail(request, user_id):
     if not request.user.is_superuser:
@@ -78,36 +73,36 @@ def user_detail(request, user_id):
         try:
             body = json.loads(request.body)
             
-            # Atualiza o Nome
-            name = body.get("name", user.get_full_name())
-            name_parts = name.split(" ", 1)
-            user.first_name = name_parts[0]
-            if len(name_parts) > 1:
-                user.last_name = name_parts[1]
-            else:
-                user.last_name = ""
+            # Atualiza o Username (se vier 'username' ou 'name')
+            new_username = body.get("username") or body.get("name")
+            if new_username:
+                # Confirma se o novo username não bate com o de outro cara já cadastrado
+                if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                    return JsonResponse({"error": "Este nome de usuário já existe no sistema."}, status=400)
+                user.username = new_username
 
-            # Atualiza Email/Username
+            # Atualiza Email
             new_email = body.get("email")
             if new_email:
                 user.email = new_email
-                user.username = new_email
                 
             # Atualiza Permissões
             role = body.get("role")
             if role:
-                user.is_superuser = (role == 'admin')
-                user.is_staff = (role == 'admin')
+                role_clean = str(role).lower().strip()
+                user.is_superuser = (role_clean == 'admin')
+                user.is_staff = (role_clean == 'admin')
                 
             # Atualiza Status
             status = body.get("status")
             if status:
-                user.is_active = (status == 'ativo')
+                status_clean = str(status).lower().strip()
+                user.is_active = (status_clean in ['ativo', 'true', '1'])
                 
-            # 🚀 Só atualiza a senha se a pessoa tiver digitado algo no React
+            # Atualiza Senha (apenas se digitou algo)
             password = body.get("password")
             if password:
-                user.set_password(password) # set_password garante a criptografia
+                user.set_password(password)
                 
             user.save()
             return JsonResponse({"message": "Usuário atualizado com sucesso."})
@@ -116,7 +111,6 @@ def user_detail(request, user_id):
             return JsonResponse({"error": str(e)}, status=400)
 
     elif request.method == "DELETE":
-        # 🚀 Trava extra: Impede o administrador de excluir a própria conta sem querer!
         if user.id == request.user.id:
             return JsonResponse({"error": "Você não pode excluir sua própria conta!"}, status=400)
             
