@@ -1,0 +1,5 @@
+[providers]
+python = true
+
+[phases.setup]
+nixPkgs = ["...", "pkg-config", "cairo", "pango"]
