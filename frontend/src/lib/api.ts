@@ -1,7 +1,9 @@
+// Coloque a URL do seu Railway aqui (sem a barra / no final)
+const API_BASE_URL = 'https://asset-flow-production-17bf.up.railway.app'
+
 type FetchInit = RequestInit & {
   skipJson?: boolean
 }
-
 
 export class ApiError extends Error {
   status: number
@@ -15,7 +17,6 @@ export class ApiError extends Error {
   }
 }
 
-
 function getCookie(name: string) {
   return document.cookie
     .split(';')
@@ -26,13 +27,12 @@ function getCookie(name: string) {
     .join('=')
 }
 
-
 export async function ensureCsrfCookie() {
-  await fetch('/api/auth/csrf/', {
+  // Adicionado a API_BASE_URL aqui
+  await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
     credentials: 'include',
   })
 }
-
 
 async function parseResponse(response: Response) {
   const contentType = response.headers.get('content-type') ?? ''
@@ -43,7 +43,6 @@ async function parseResponse(response: Response) {
 
   return response.text()
 }
-
 
 export async function apiFetch<T>(path: string, init: FetchInit = {}) {
   const method = init.method ?? 'GET'
@@ -65,7 +64,8 @@ export async function apiFetch<T>(path: string, init: FetchInit = {}) {
     }
   }
 
-  const response = await fetch(path, {
+  // Adicionado a API_BASE_URL aqui também
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: 'include',
     headers,
@@ -84,7 +84,6 @@ export async function apiFetch<T>(path: string, init: FetchInit = {}) {
 
   return payload as T
 }
-
 
 export function getApiErrorMessage(error: unknown, fallback = 'Ocorreu um erro inesperado.') {
   if (error instanceof ApiError) {

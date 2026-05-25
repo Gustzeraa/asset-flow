@@ -157,5 +157,12 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.up.railway.app',
     'https://*.vercel.app',  
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
 # Configuração para o WhiteNoise servir os arquivos do Django Admin na nuvem
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
