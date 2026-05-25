@@ -2,4 +2,4 @@
 python = true
 
 [phases.setup]
-nixPkgs = ["...", "pkg-config", "cairo", "pango"]
+aptPkgs = ["...", "pkg-config", "libcairo2-dev", "libpango1.0-dev"]
