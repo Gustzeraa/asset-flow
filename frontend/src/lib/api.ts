@@ -1,5 +1,8 @@
-// Coloque a URL do seu Railway aqui (sem a barra / no final)
+// A URL definitiva do seu Railway
 const API_BASE_URL = 'https://asset-flow-production-17bf.up.railway.app'
+
+// Guardamos o token na memória do Javascript
+let savedCsrfToken = ''
 
 type FetchInit = RequestInit & {
   skipJson?: boolean
@@ -17,30 +20,22 @@ export class ApiError extends Error {
   }
 }
 
-function getCookie(name: string) {
-  return document.cookie
-    .split(';')
-    .map((item) => item.trim())
-    .find((item) => item.startsWith(`${name}=`))
-    ?.split('=')
-    .slice(1)
-    .join('=')
-}
-
+// Nova função: Lê o JSON do backend em vez de ler document.cookie
 export async function ensureCsrfCookie() {
-  // Adicionado a API_BASE_URL aqui
-  await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/csrf/`, {
     credentials: 'include',
   })
+  const data = await response.json()
+  if (data.csrfToken) {
+    savedCsrfToken = data.csrfToken
+  }
 }
 
 async function parseResponse(response: Response) {
   const contentType = response.headers.get('content-type') ?? ''
-
   if (contentType.includes('application/json')) {
     return response.json()
   }
-
   return response.text()
 }
 
@@ -53,21 +48,19 @@ export async function apiFetch<T>(path: string, init: FetchInit = {}) {
     headers.set('Content-Type', 'application/json')
   }
 
+  // Se for POST/PUT/DELETE, injeta o token da memória
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) {
-    if (!getCookie('csrftoken')) {
+    if (!savedCsrfToken) {
       await ensureCsrfCookie()
     }
-
-    const csrfToken = getCookie('csrftoken')
-    if (csrfToken) {
-      headers.set('X-CSRFToken', csrfToken)
+    if (savedCsrfToken) {
+      headers.set('X-CSRFToken', savedCsrfToken)
     }
   }
 
-  // Adicionado a API_BASE_URL aqui também
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
-    credentials: 'include',
+    credentials: 'include', // Mantém a sessão viva
     headers,
   })
 
@@ -86,13 +79,7 @@ export async function apiFetch<T>(path: string, init: FetchInit = {}) {
 }
 
 export function getApiErrorMessage(error: unknown, fallback = 'Ocorreu um erro inesperado.') {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
+  if (error instanceof ApiError) return error.message
+  if (error instanceof Error) return error.message
   return fallback
 }

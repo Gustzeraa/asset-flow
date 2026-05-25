@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
-
+from django.middleware.csrf import get_token
 from api.serializers import serialize_user
 from api.utils import json_error, request_data
 
@@ -10,7 +10,7 @@ from api.utils import json_error, request_data
 @require_GET
 @ensure_csrf_cookie
 def csrf(request):
-    return JsonResponse({'detail': 'CSRF cookie atualizado.'})
+    return JsonResponse({'csrfToken': get_token(request)})
 
 
 @require_GET
