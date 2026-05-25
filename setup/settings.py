@@ -152,6 +152,6 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Permite que qualquer URL do Vercel faça requisições para a nossa API
 CORS_ALLOW_ALL_ORIGINS = True
-
+CSRF_TRUSTED_ORIGINS = ['https://*.up.railway.app']
 # Configuração para o WhiteNoise servir os arquivos do Django Admin na nuvem
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
