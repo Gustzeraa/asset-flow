@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / 'frontend'
 FRONTEND_DIST_DIR = FRONTEND_DIR / 'dist'
@@ -22,12 +24,12 @@ FRONTEND_DIST_DIR = FRONTEND_DIR / 'dist'
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(l@90&zi+w(m@7w1+&#+698-q12vso&ltzcw%c)r(#q46ywjwq'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'chave-insegura-de-teste-local-123')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -39,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'api',
     'estoque',
     'rh',
@@ -46,7 +49,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,10 +84,10 @@ WSGI_APPLICATION = 'setup.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600
+    )
 }
 
 
@@ -144,3 +149,9 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Permite que qualquer URL do Vercel faça requisições para a nossa API
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Configuração para o WhiteNoise servir os arquivos do Django Admin na nuvem
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
