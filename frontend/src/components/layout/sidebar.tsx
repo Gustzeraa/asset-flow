@@ -30,7 +30,7 @@ const items: MenuItem[] = [
     icon: screenIcons.collaborators,
     children: [
       { label: 'Lista de Colaboradores', to: '/colaboradores' },
-      { label: 'Departamentos', to: '/departamentos' } // Nova rota que vamos criar
+      { label: 'Departamentos', to: '/departamentos' }
     ]
   },
   { 
