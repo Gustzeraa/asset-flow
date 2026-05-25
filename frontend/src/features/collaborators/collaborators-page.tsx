@@ -11,7 +11,7 @@ import {
   Text,
   TextInput,
   FileInput,
-  Select // NOVO
+  Select 
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 
@@ -98,6 +98,41 @@ export function CollaboratorsPage() {
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
+  const [quickDeptOpened, setQuickDeptOpened] = useState(false)
+  const [quickDeptName, setQuickDeptName] = useState('')
+  const [isSavingQuickDept, setIsSavingQuickDept] = useState(false)
+
+  async function handleQuickCreateDepartment(event: React.FormEvent) {
+    event.preventDefault()
+    if (!quickDeptName.trim()) return
+
+    setIsSavingQuickDept(true)
+    try {
+      const response = await apiFetch<{ item: { id: number, nome: string } }>('/api/departments/', {
+        method: 'POST',
+        body: JSON.stringify({ nome: quickDeptName }),
+      })
+      
+      appFeedback.success({ 
+        title: 'Departamento criado', 
+        message: 'O novo departamento já está selecionado no formulário.' 
+      })
+      
+      await refreshLookups()
+      updateField('departamento_id', String(response.item.id))
+      
+      setQuickDeptOpened(false)
+      setQuickDeptName('')
+    } catch (error) {
+      appFeedback.error({
+        title: 'Erro ao criar departamento',
+        message: getApiErrorMessage(error),
+      })
+    } finally {
+      setIsSavingQuickDept(false)
+    }
+  }
+
   const items = useMemo(() => data?.items ?? [], [data?.items])
 
   useEffect(() => {
@@ -154,10 +189,9 @@ export function CollaboratorsPage() {
     event.preventDefault()
     setIsSaving(true)
 
-    // Ajusta o payload para converter o departamento_id para int ou null
     const payload: any = { ...form }
     payload.departamento = form.departamento_id ? parseInt(form.departamento_id, 10) : null
-    delete payload.departamento_id // Limpamos essa chave para enviar certinho pro Django
+    delete payload.departamento_id 
 
     try {
       if (editing) {
@@ -488,7 +522,6 @@ export function CollaboratorsPage() {
               />
               <TextInput label="Cargo" onChange={(event) => updateField('cargo', event.currentTarget.value)} required value={form.cargo} />
 
-              {/* MODIFICADO: Substituído TextInput por Select pegando do Lookup */}
               <Select
                 data={lookups?.departamentos.map((d) => ({ value: String(d.id), label: d.nome })) ?? []}
                 label="Departamento"
@@ -497,6 +530,22 @@ export function CollaboratorsPage() {
                 required
                 value={form.departamento_id}
                 searchable
+                rightSectionPointerEvents="auto"
+                rightSection={
+                  <ActionIcon 
+                    size="sm" 
+                    variant="light" 
+                    color="brand" 
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setQuickDeptOpened(true)
+                    }} 
+                    title="Novo departamento"
+                  >
+                    <AddIcon size={14} />
+                  </ActionIcon>
+                }
               />
 
               <TextInput className="md:col-span-2" label="Email" onChange={(event) => updateField('email', event.currentTarget.value)} required type="email" value={form.email} />
@@ -524,6 +573,25 @@ export function CollaboratorsPage() {
               <AppButton loading={isSaving} type="submit">
                 Salvar colaborador
               </AppButton>
+            </Group>
+          </Stack>
+        </form>
+      </AppModal>
+
+      <AppModal opened={quickDeptOpened} onClose={() => setQuickDeptOpened(false)} title="Novo Departamento Rápido" size="sm">
+        <form onSubmit={handleQuickCreateDepartment}>
+          <Stack gap="md">
+            <TextInput
+              label="Nome do departamento"
+              placeholder="Ex: TI, RH, Financeiro..."
+              required
+              data-autofocus
+              value={quickDeptName}
+              onChange={(e) => setQuickDeptName(e.currentTarget.value)}
+            />
+            <Group justify="flex-end">
+              <AppButton variant="subtle" color="gray" onClick={() => setQuickDeptOpened(false)} type="button">Cancelar</AppButton>
+              <AppButton type="submit" loading={isSavingQuickDept}>Salvar</AppButton>
             </Group>
           </Stack>
         </form>

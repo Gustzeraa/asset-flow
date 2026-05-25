@@ -28,7 +28,7 @@ import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { formatDate, formatNullable } from '@/lib/format'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
-import type { Equipment } from '@/types/domain'
+import type { Equipment, Category, Collaborator } from '@/types/domain'
 
 type EquipmentListResponse = {
   items: Equipment[]
@@ -87,7 +87,7 @@ export function EquipmentsPage() {
   const DownloadIcon = actionIcons.download
   const UploadIcon = actionIcons.upload
   const TransferIcon = actionIcons.transfer
-  const ViewIcon = actionIcons.view // Ícone para visualização rápida
+  const ViewIcon = actionIcons.view 
   
   const EquipmentIcon = screenIcons.equipments
   const CategoryIcon = screenIcons.categories
@@ -132,9 +132,86 @@ export function EquipmentsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isTransferring, setIsTransferring] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  
-  // NOVO: Estado para Visualização Rápida
   const [viewingEquipment, setViewingEquipment] = useState<Equipment | null>(null)
+  
+  // Quick Categoria
+  const [quickCategoryOpened, setQuickCategoryOpened] = useState(false)
+  const [quickCategoryName, setQuickCategoryName] = useState('')
+  const [isSavingQuickCategory, setIsSavingQuickCategory] = useState(false)
+
+  // Quick Colaborador
+  const [quickCollabOpened, setQuickCollabOpened] = useState(false)
+  const [quickCollabTarget, setQuickCollabTarget] = useState<'responsavel' | 'validador' | null>(null)
+  const [quickCollabForm, setQuickCollabForm] = useState({ nome: '', cargo: '', email: '', departamento_id: '' })
+  const [isSavingQuickCollab, setIsSavingQuickCollab] = useState(false)
+
+  async function handleQuickCreateCategory(event: React.FormEvent) {
+    event.preventDefault()
+    if (!quickCategoryName.trim()) return
+
+    setIsSavingQuickCategory(true)
+    try {
+      const response = await apiFetch<{ item: Category }>('/api/categories/', {
+        method: 'POST',
+        body: JSON.stringify({ nome: quickCategoryName }),
+      })
+      appFeedback.success({ 
+        title: 'Categoria criada',
+        message: `A categoria "${response.item.nome}" foi criada com sucesso.`
+      })
+      await refreshLookups()
+      updateForm('categoria', String(response.item.id))
+      setQuickCategoryOpened(false)
+      setQuickCategoryName('')
+    } catch (error) {
+      appFeedback.error({ title: 'Erro ao criar categoria', message: getApiErrorMessage(error) })
+    } finally {
+      setIsSavingQuickCategory(false)
+    }
+  }
+
+  async function handleQuickCreateCollaborator(event: React.FormEvent) {
+    event.preventDefault()
+    setIsSavingQuickCollab(true)
+
+    try {
+      const payload = {
+        ...quickCollabForm,
+        departamento_id: parseInt(quickCollabForm.departamento_id, 10),
+        cpf: null, // Deixamos vazio na criação rápida
+        ativo: true
+      }
+      
+      const response = await apiFetch<{ item: Collaborator }>('/api/collaborators/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      
+      appFeedback.success({ 
+        title: 'Colaborador criado com sucesso',
+        message: `O colaborador "${response.item.nome}" foi criado com sucesso.`
+      })
+      await refreshLookups()
+      
+      if (quickCollabTarget) {
+        updateForm(quickCollabTarget, String(response.item.id))
+      }
+      
+      setQuickCollabOpened(false)
+      setQuickCollabForm({ nome: '', cargo: '', email: '', departamento_id: '' })
+    } catch (error) {
+      appFeedback.error({ title: 'Erro ao criar colaborador', message: getApiErrorMessage(error) })
+    } finally {
+      setIsSavingQuickCollab(false)
+    }
+  }
+
+  function openQuickCollab(target: 'responsavel' | 'validador') {
+    setQuickCollabTarget(target)
+    setQuickCollabForm({ nome: '', cargo: '', email: '', departamento_id: '' })
+    setQuickCollabOpened(true)
+  }
+  // ============================================================================
 
   const items = useMemo(() => data?.items ?? [], [data?.items])
 
@@ -208,7 +285,7 @@ export function EquipmentsPage() {
     setSelectedIds(new Set(items.map((item) => item.id)))
   }
 
-async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSaving(true)
 
@@ -226,16 +303,12 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     formData.append('validador', form.validador)
     formData.append('observacao', form.observacao)
     
-    // Garantimos que imagensArray seja sempre uma lista, mesmo que o TypeScript se confunda
     const imagensArray = Array.isArray(form.imagens) 
       ? form.imagens 
       : (form.imagens ? [form.imagens as unknown as File] : [])
 
     if (imagensArray.length > 0) {
-      // A primeira imagem selecionada vira a Foto de Capa
       formData.append('foto', imagensArray[0])
-
-      // As demais imagens (a partir da segunda) vão para a galeria
       const fotosGaleria = imagensArray.slice(1, 5)
       fotosGaleria.forEach((file) => {
         formData.append('galeria', file)
@@ -334,12 +407,9 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 
   async function handleImportSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!importFile) {
-      return
-    }
+    if (!importFile) return
 
     setIsImporting(true)
-
     const formData = new FormData()
     formData.append('file', importFile)
 
@@ -374,19 +444,11 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
-          await apiFetch(`/api/equipments/${item.id}/trash/`, {
-            method: 'POST',
-          })
-          appFeedback.success({
-            title: 'Equipamento movido',
-            message: 'O equipamento foi enviado para a lixeira.',
-          })
+          await apiFetch(`/api/equipments/${item.id}/trash/`, { method: 'POST' })
+          appFeedback.success({ title: 'Equipamento movido', message: 'O equipamento foi enviado para a lixeira.' })
           await reload()
         } catch (error) {
-          appFeedback.error({
-            title: 'Falha ao mover equipamento',
-            message: getApiErrorMessage(error),
-          })
+          appFeedback.error({ title: 'Falha ao mover equipamento', message: getApiErrorMessage(error) })
         }
       },
     })
@@ -403,26 +465,18 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         try {
           await apiFetch('/api/equipments/bulk/trash/', {
             method: 'POST',
-            body: JSON.stringify({
-              ids: Array.from(selectedIds),
-            }),
+            body: JSON.stringify({ ids: Array.from(selectedIds) }),
           })
-          appFeedback.success({
-            title: 'Lote movido',
-            message: 'Os equipamentos selecionados foram enviados para a lixeira.',
-          })
+          appFeedback.success({ title: 'Lote movido', message: 'Os equipamentos selecionados foram enviados para a lixeira.' })
           await reload()
         } catch (error) {
-          appFeedback.error({
-            title: 'Falha ao mover lote',
-            message: getApiErrorMessage(error),
-          })
+          appFeedback.error({ title: 'Falha ao mover lote', message: getApiErrorMessage(error) })
         }
       },
     })
   }
 
-if (isLoading && !data) {
+  if (isLoading && !data) {
     return <LoadingPanel label="Carregando equipamentos..." />
   }
 
@@ -599,7 +653,6 @@ if (isLoading && !data) {
                 width: 180,
                 render: (item) => (
                   <Group gap="xs">
-                    {/* NOVO BOTÃO: Visualização Rápida */}
                     <ActionIcon color="blue" onClick={() => setViewingEquipment(item)} radius="xl" variant="light" title="Visualizar detalhes">
                       <ViewIcon size={15} />
                     </ActionIcon>
@@ -630,23 +683,44 @@ if (isLoading && !data) {
         </AppCard>
       </Stack>
 
-      <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar equipamento' : 'Novo equipamento'}>
+     <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar equipamento' : 'Novo equipamento'}>
         <form onSubmit={handleSubmit}>
           <Stack gap="lg">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
               <TextInput label="Data de registro" onChange={(event) => updateForm('data', event.currentTarget.value)} required type="date" value={form.data} />
               <TextInput label="Patrimonio" onChange={(event) => updateForm('num_patrimonio', event.currentTarget.value)} required value={form.num_patrimonio} />
               <TextInput label="Nome do equipamento" onChange={(event) => updateForm('nome', event.currentTarget.value)} required value={form.nome} />
-              <Select
+              
+              {/* SELECT DE CATEGORIA COM BOTÃO NOVO */}
+                <Select
                 data={lookups?.categorias.map((item) => ({ value: String(item.id), label: item.nome })) ?? []}
                 label="Categoria"
                 onChange={(value) => updateForm('categoria', value ?? '')}
                 required
+                searchable
                 value={form.categoria}
+                rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
+                rightSection={
+                  <ActionIcon 
+                    size="sm" 
+                    variant="light" 
+                    color="brand" 
+                    onMouseDown={(e) => e.stopPropagation()} // NOVO: Evita abrir o Select
+                    onClick={(e) => {
+                      e.stopPropagation() // NOVO: Garante que só o modal abra
+                      setQuickCategoryOpened(true)
+                    }} 
+                    title="Nova categoria"
+                  >
+                    <AddIcon size={14} />
+                  </ActionIcon>
+                }
               />
+              
               <TextInput label="Local" onChange={(event) => updateForm('local', event.currentTarget.value)} value={form.local} />
               <TextInput label="Tipo" onChange={(event) => updateForm('tipo', event.currentTarget.value)} value={form.tipo} />
               <TextInput label="Departamento" onChange={(event) => updateForm('departamento', event.currentTarget.value)} value={form.departamento} />
+              
               <Select
                 data={lookups?.equipamento_status ?? []}
                 label="Status"
@@ -654,21 +728,59 @@ if (isLoading && !data) {
                 required
                 value={form.status}
               />
+              
+              {/* SELECT DE RESPONSÁVEL COM BOTÃO NOVO */}
               <Select
                 clearable
+                searchable
                 data={lookups?.colaboradores.map((item) => ({ value: String(item.id), label: item.nome })) ?? []}
                 label="Responsavel"
                 onChange={(value) => updateForm('responsavel', value ?? '')}
                 placeholder="Sem responsavel"
                 value={form.responsavel}
+                rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
+                rightSection={
+                  <ActionIcon 
+                    size="sm" 
+                    variant="light" 
+                    color="brand" 
+                    onMouseDown={(e) => e.stopPropagation()} // NOVO
+                    onClick={(e) => {
+                      e.stopPropagation() // NOVO
+                      openQuickCollab('responsavel')
+                    }} 
+                    title="Novo colaborador"
+                  >
+                    <AddIcon size={14} />
+                  </ActionIcon>
+                }
               />
+              
+              {/* SELECT DE VALIDADOR COM BOTÃO NOVO */}
               <Select
                 clearable
+                searchable
                 data={lookups?.colaboradores.map((item) => ({ value: String(item.id), label: item.nome })) ?? []}
                 label="Validador"
                 onChange={(value) => updateForm('validador', value ?? '')}
                 placeholder="Sem validador"
                 value={form.validador}
+                rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
+                rightSection={
+                  <ActionIcon 
+                    size="sm" 
+                    variant="light" 
+                    color="brand" 
+                    onMouseDown={(e) => e.stopPropagation()} // NOVO
+                    onClick={(e) => {
+                      e.stopPropagation() // NOVO
+                      openQuickCollab('validador')
+                    }} 
+                    title="Novo validador"
+                  >
+                    <AddIcon size={14} />
+                  </ActionIcon>
+                }
               />
             </SimpleGrid>
             <Textarea autosize label="Descricao" minRows={3} onChange={(event) => updateForm('descricao', event.currentTarget.value)} value={form.descricao} />
@@ -679,10 +791,8 @@ if (isLoading && !data) {
               description="A primeira foto selecionada será usada como capa. Você pode selecionar até 5 fotos no total."
               multiple
               clearable
-              // O "any" ignora a confusão interna do Mantine e força o TypeScript a aceitar a lista
               onChange={(payload: any) => updateForm('imagens', payload || [])}
               placeholder="Clique para selecionar as imagens..."
-              // Passamos a lista diretamente, pois ela já inicializa como um array vazio []
               value={form.imagens} 
             />
             <Group justify="flex-end">
@@ -696,6 +806,66 @@ if (isLoading && !data) {
           </Stack>
         </form>
       </AppModal>
+
+      <AppModal opened={quickCategoryOpened} onClose={() => setQuickCategoryOpened(false)} title="Nova Categoria Rápida" size="sm">
+        <form onSubmit={handleQuickCreateCategory}>
+          <Stack gap="md">
+            <TextInput
+              label="Nome da categoria"
+              placeholder="Ex: Notebooks, Periféricos..."
+              required
+              data-autofocus
+              value={quickCategoryName}
+              onChange={(e) => setQuickCategoryName(e.currentTarget.value)}
+            />
+            <Group justify="flex-end">
+              <AppButton variant="subtle" color="gray" onClick={() => setQuickCategoryOpened(false)} type="button">Cancelar</AppButton>
+              <AppButton type="submit" loading={isSavingQuickCategory}>Salvar</AppButton>
+            </Group>
+          </Stack>
+        </form>
+      </AppModal>
+
+      <AppModal opened={quickCollabOpened} onClose={() => setQuickCollabOpened(false)} title="Novo Colaborador Rápido" size="md">
+        <form onSubmit={handleQuickCreateCollaborator}>
+          <Stack gap="md">
+            <TextInput
+              label="Nome completo"
+              required
+              data-autofocus
+              value={quickCollabForm.nome}
+              onChange={(e) => setQuickCollabForm({ ...quickCollabForm, nome: e.currentTarget.value })}
+            />
+            <TextInput
+              label="Cargo"
+              required
+              value={quickCollabForm.cargo}
+              onChange={(e) => setQuickCollabForm({ ...quickCollabForm, cargo: e.currentTarget.value })}
+            />
+            <TextInput
+              label="Email"
+              type="email"
+              required
+              value={quickCollabForm.email}
+              onChange={(e) => setQuickCollabForm({ ...quickCollabForm, email: e.currentTarget.value })}
+            />
+            <Select
+              label="Departamento"
+              required
+              searchable
+              data={lookups?.departamentos?.map((d) => ({ value: String(d.id), label: d.nome })) ?? []}
+              value={quickCollabForm.departamento_id}
+              onChange={(v) => setQuickCollabForm({ ...quickCollabForm, departamento_id: v ?? '' })}
+              placeholder="Selecione o departamento..."
+            />
+            <Group justify="flex-end">
+              <AppButton variant="subtle" color="gray" onClick={() => setQuickCollabOpened(false)} type="button">Cancelar</AppButton>
+              <AppButton type="submit" loading={isSavingQuickCollab}>Salvar</AppButton>
+            </Group>
+          </Stack>
+        </form>
+      </AppModal>
+
 
       <AppModal
         onClose={() => setTransferOpened(false)}
@@ -768,7 +938,6 @@ if (isLoading && !data) {
         </form>
       </AppModal>
 
-{/* NOVO: Modal de Visualização Rápida com Foto e Galeria */}
       <AppModal 
         onClose={() => setViewingEquipment(null)} 
         opened={!!viewingEquipment} 
@@ -777,10 +946,7 @@ if (isLoading && !data) {
       >
         {viewingEquipment && (
           <Stack gap="xl">
-            
-            {/* Cabeçalho do Detalhe com a Foto Principal */}
             <Group wrap="nowrap" align="flex-start" gap="md">
-              {/* Renderiza a foto ou o ícone padrão se não tiver foto */}
               {viewingEquipment.foto_url ? (
                 <Image 
                   alt={viewingEquipment.nome} 
@@ -810,7 +976,6 @@ if (isLoading && !data) {
               </Stack>
             </Group>
 
-            {/* Grid de Informações Curtas */}
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
               <Stack gap={0}>
                 <Text size="xs" tt="uppercase" fw={700} c="dimmed">Categoria</Text>
@@ -843,7 +1008,6 @@ if (isLoading && !data) {
               </Stack>
             </SimpleGrid>
 
-            {/* Informações Longas (Ocupam a linha toda) */}
             <Stack gap="sm">
               <Stack gap={0}>
                 <Text size="xs" tt="uppercase" fw={700} c="dimmed">Descrição Técnica</Text>
@@ -859,7 +1023,6 @@ if (isLoading && !data) {
                 </Text>
               </Stack>
 
-              {/* NOVO BLOCO: GALERIA DE FOTOS */}
               {(viewingEquipment as any)?.galeria?.length > 0 && (
                 <Stack gap={0} mt="sm">
                   <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb="xs">Galeria de Imagens</Text>
