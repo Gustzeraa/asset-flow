@@ -1,1 +1,1 @@
-web: python manage.py migrate && python manage.py createsuperuser --noinput || true && gunicorn setup.wsgi --log-file -
+web: python manage.py migrate && python manage.py createsuperuser --noinput --username admin --email admin@admin.com || true && gunicorn setup.wsgi:application --bind 0.0.0.0:$PORT
