@@ -11,7 +11,7 @@ import {
   Text,
   TextInput,
   FileInput,
-  Select 
+  Select
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 
@@ -25,7 +25,7 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { apiFetch, getApiErrorMessage, downloadFile } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Collaborator } from '@/types/domain'
@@ -53,11 +53,11 @@ const initialForm: CollaboratorFormState = {
 }
 
 function formatCPF(value: string) {
-  let v = value.replace(/\D/g, "") 
-  v = v.replace(/(\d{3})(\d)/, "$1.$2") 
-  v = v.replace(/(\d{3})(\d)/, "$1.$2") 
-  v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2") 
-  return v.slice(0, 14) 
+  let v = value.replace(/\D/g, "")
+  v = v.replace(/(\d{3})(\d)/, "$1.$2")
+  v = v.replace(/(\d{3})(\d)/, "$1.$2")
+  v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+  return v.slice(0, 14)
 }
 
 export function CollaboratorsPage() {
@@ -112,15 +112,15 @@ export function CollaboratorsPage() {
         method: 'POST',
         body: JSON.stringify({ nome: quickDeptName }),
       })
-      
-      appFeedback.success({ 
-        title: 'Departamento criado', 
-        message: 'O novo departamento já está selecionado no formulário.' 
+
+      appFeedback.success({
+        title: 'Departamento criado',
+        message: 'O novo departamento já está selecionado no formulário.'
       })
-      
+
       await refreshLookups()
       updateField('departamento_id', String(response.item.id))
-      
+
       setQuickDeptOpened(false)
       setQuickDeptName('')
     } catch (error) {
@@ -191,7 +191,7 @@ export function CollaboratorsPage() {
 
     const payload: any = { ...form }
     payload.departamento = form.departamento_id ? parseInt(form.departamento_id, 10) : null
-    delete payload.departamento_id 
+    delete payload.departamento_id
 
     try {
       if (editing) {
@@ -358,6 +358,22 @@ export function CollaboratorsPage() {
     )
   }
 
+  async function handleGenerateTerm(item: Collaborator) {
+    try {
+      // Limpa o nome do colaborador para usar no nome do arquivo (ex: joao_silva.pdf)
+      const cleanName = item.nome.trim().replace(/\s+/g, '_').toLowerCase()
+      const fileName = `termo_responsabilidade_${cleanName}.pdf`
+
+      await downloadFile(`/api/collaborators/${item.id}/term/`, fileName)
+
+    } catch (error) {
+      appFeedback.error({
+        title: 'Erro ao gerar termo',
+        message: getApiErrorMessage(error),
+      })
+    }
+  }
+
   return (
     <>
       <Stack gap="lg">
@@ -467,7 +483,7 @@ export function CollaboratorsPage() {
                       <EditIcon size={15} />
                     </ActionIcon>
 
-                    <ActionIcon color="grape" onClick={() => window.open(`/api/collaborators/${item.id}/term/`, '_blank', 'noopener,noreferrer')} radius="xl" variant="light" title="Imprimir termo pdf">
+                    <ActionIcon color="grape" onClick={() => handleGenerateTerm(item)} radius="xl" variant="light" title="Imprimir termo pdf">
                       <DocumentIcon size={15} />
                     </ActionIcon>
 
@@ -532,15 +548,15 @@ export function CollaboratorsPage() {
                 searchable
                 rightSectionPointerEvents="auto"
                 rightSection={
-                  <ActionIcon 
-                    size="sm" 
-                    variant="light" 
-                    color="brand" 
+                  <ActionIcon
+                    size="sm"
+                    variant="light"
+                    color="brand"
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation()
                       setQuickDeptOpened(true)
-                    }} 
+                    }}
                     title="Novo departamento"
                   >
                     <AddIcon size={14} />
