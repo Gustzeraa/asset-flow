@@ -25,7 +25,7 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { apiFetch, getApiErrorMessage, downloadFile } from '@/lib/api'
+import { apiFetch, getApiErrorMessage, downloadFile, getMediaUrl } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Collaborator } from '@/types/domain'
@@ -673,7 +673,7 @@ export function CollaboratorsPage() {
                     <AppButton
                       variant="light"
                       size="xs"
-                      onClick={() => window.open(termo.url, '_blank', 'noopener,noreferrer')}
+                      onClick={() => window.open(getMediaUrl(termo.url), '_blank', 'noopener,noreferrer')}
                     >
                       Abrir PDF
                     </AppButton>
