@@ -19,6 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / 'frontend'
 FRONTEND_DIST_DIR = FRONTEND_DIR / 'dist'
 
+DATA_DIR = Path('/app/data') if os.path.exists('/app') else BASE_DIR
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -85,7 +87,7 @@ WSGI_APPLICATION = 'setup.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=f"sqlite:///{DATA_DIR / 'db.sqlite3'}",
         conn_max_age=600
     )
 }
@@ -126,7 +128,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/assets/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = DATA_DIR / 'staticfiles'
 
 STATICFILES_DIRS = []
 if (FRONTEND_DIST_DIR / 'assets').exists():
@@ -136,7 +138,7 @@ if (FRONTEND_DIR / 'public').exists():
 
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = DATA_DIR / 'media'
 
 # Redirecionamentos de Login
 LOGIN_REDIRECT_URL = '/dashboard'
