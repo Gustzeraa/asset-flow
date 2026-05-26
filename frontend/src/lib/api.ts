@@ -110,3 +110,14 @@ export async function downloadFile(path: string, filename: string) {
   link.parentNode?.removeChild(link);
   window.URL.revokeObjectURL(url);
 }
+
+// Transforma caminhos relativos em URLs absolutas do Railway
+export function getMediaUrl(path: string | null | undefined) {
+  if (!path) return '';
+  // Se já for um link completo, retorna ele mesmo
+  if (path.startsWith('http')) return path;
+  
+  // Substitua pela SUA URL exata do Railway
+  const backendUrl = 'https://asset-flow-production-17bf.up.railway.app'; 
+  return `${backendUrl}${path}`;
+}

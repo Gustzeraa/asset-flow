@@ -24,11 +24,12 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { apiFetch, getApiErrorMessage, downloadFile } from '@/lib/api'
+import { apiFetch, getApiErrorMessage, downloadFile, getMediaUrl } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { formatDate, formatNullable } from '@/lib/format'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Equipment, Category, Collaborator } from '@/types/domain'
+
 
 type EquipmentListResponse = {
   items: Equipment[]
@@ -78,7 +79,7 @@ function createInitialEquipmentForm(defaultStatus: string): EquipmentFormState {
 
 export function EquipmentsPage() {
   const { lookups, refreshLookups } = useLookups()
-  
+
   // Ícones
   const SearchIcon = actionIcons.search
   const AddIcon = actionIcons.add
@@ -87,22 +88,22 @@ export function EquipmentsPage() {
   const DownloadIcon = actionIcons.download
   const UploadIcon = actionIcons.upload
   const TransferIcon = actionIcons.transfer
-  const ViewIcon = actionIcons.view 
-  
+  const ViewIcon = actionIcons.view
+
   const EquipmentIcon = screenIcons.equipments
   const CategoryIcon = screenIcons.categories
   const ActiveIcon = sectionIcons.active
   const AvailableIcon = sectionIcons.available
   const InUseIcon = sectionIcons.inUse
   const MaintenanceIcon = sectionIcons.maintenance
-  
+
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [categoria, setCategoria] = useState<string | null>(null)
   const [ordenacao, setOrdenacao] = useState<string | null>(null)
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
-  
+
   const query = useMemo(() => {
     const params = new URLSearchParams()
     if (deferredSearch) params.set('search', deferredSearch)
@@ -117,7 +118,7 @@ export function EquipmentsPage() {
     () => apiFetch<EquipmentListResponse>(`/api/equipments/${query ? `?${query}` : ''}`),
     [query],
   )
-  
+
   const [opened, setOpened] = useState(false)
   const [transferOpened, setTransferOpened] = useState(false)
   const [categoryOpened, setCategoryOpened] = useState(false)
@@ -133,7 +134,7 @@ export function EquipmentsPage() {
   const [isTransferring, setIsTransferring] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [viewingEquipment, setViewingEquipment] = useState<Equipment | null>(null)
-  
+
   // Quick Categoria
   const [quickCategoryOpened, setQuickCategoryOpened] = useState(false)
   const [quickCategoryName, setQuickCategoryName] = useState('')
@@ -155,7 +156,7 @@ export function EquipmentsPage() {
         method: 'POST',
         body: JSON.stringify({ nome: quickCategoryName }),
       })
-      appFeedback.success({ 
+      appFeedback.success({
         title: 'Categoria criada',
         message: `A categoria "${response.item.nome}" foi criada com sucesso.`
       })
@@ -181,22 +182,22 @@ export function EquipmentsPage() {
         cpf: null, // Deixamos vazio na criação rápida
         ativo: true
       }
-      
+
       const response = await apiFetch<{ item: Collaborator }>('/api/collaborators/', {
         method: 'POST',
         body: JSON.stringify(payload),
       })
-      
-      appFeedback.success({ 
+
+      appFeedback.success({
         title: 'Colaborador criado com sucesso',
         message: `O colaborador "${response.item.nome}" foi criado com sucesso.`
       })
       await refreshLookups()
-      
+
       if (quickCollabTarget) {
         updateForm(quickCollabTarget, String(response.item.id))
       }
-      
+
       setQuickCollabOpened(false)
       setQuickCollabForm({ nome: '', cargo: '', email: '', departamento_id: '' })
     } catch (error) {
@@ -302,9 +303,9 @@ export function EquipmentsPage() {
     formData.append('responsavel', form.responsavel)
     formData.append('validador', form.validador)
     formData.append('observacao', form.observacao)
-    
-    const imagensArray = Array.isArray(form.imagens) 
-      ? form.imagens 
+
+    const imagensArray = Array.isArray(form.imagens)
+      ? form.imagens
       : (form.imagens ? [form.imagens as unknown as File] : [])
 
     if (imagensArray.length > 0) {
@@ -418,10 +419,10 @@ export function EquipmentsPage() {
         method: 'POST',
         body: formData,
       })
-      ;(response.errors.length ? appFeedback.warning : appFeedback.success)({
-        title: 'Importacao concluida',
-        message: `${response.successes} item(ns) importado(s). ${response.errors.length ? `${response.errors.length} erro(s) detectado(s).` : ''}`,
-      })
+        ; (response.errors.length ? appFeedback.warning : appFeedback.success)({
+          title: 'Importacao concluida',
+          message: `${response.successes} item(ns) importado(s). ${response.errors.length ? `${response.errors.length} erro(s) detectado(s).` : ''}`,
+        })
       setImportOpened(false)
       setImportFile(null)
       await Promise.all([reload(), refreshLookups()])
@@ -519,11 +520,11 @@ export function EquipmentsPage() {
               <AppButton onClick={handleDownloadTemplate} leftSection={<DownloadIcon size={14} />} variant="light">
                 Baixar modelo
               </AppButton>
-              
+
               <AppButton onClick={handleExport} leftSection={<DownloadIcon size={14} />} variant="light">
                 Exportar CSV
               </AppButton>
-              
+
               <AppButton leftSection={<UploadIcon size={14} />} onClick={() => setImportOpened(true)} variant="light">
                 Importar CSV
               </AppButton>
@@ -626,7 +627,7 @@ export function EquipmentsPage() {
                 render: (item) => (
                   <Group wrap="nowrap">
                     {item.foto_url ? (
-                      <Image alt={item.nome} className="rounded-2xl border border-slate-200" h={52} radius="lg" src={item.foto_url} w={52} />
+                      <Image alt={item.nome} className="rounded-2xl border border-slate-200" h={52} radius="lg" src={getMediaUrl(item.foto_url)} w={52} />
                     ) : (
                       <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
                         <EquipmentIcon size={18} />
@@ -701,16 +702,16 @@ export function EquipmentsPage() {
         </AppCard>
       </Stack>
 
-     <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar equipamento' : 'Novo equipamento'}>
+      <AppModal onClose={() => setOpened(false)} opened={opened} size="xl" title={editing ? 'Editar equipamento' : 'Novo equipamento'}>
         <form onSubmit={handleSubmit}>
           <Stack gap="lg">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
               <TextInput label="Data de registro" onChange={(event) => updateForm('data', event.currentTarget.value)} required type="date" value={form.data} />
               <TextInput label="Patrimonio" onChange={(event) => updateForm('num_patrimonio', event.currentTarget.value)} required value={form.num_patrimonio} />
               <TextInput label="Nome do equipamento" onChange={(event) => updateForm('nome', event.currentTarget.value)} required value={form.nome} />
-              
+
               {/* SELECT DE CATEGORIA COM BOTÃO NOVO */}
-                <Select
+              <Select
                 data={lookups?.categorias.map((item) => ({ value: String(item.id), label: item.nome })) ?? []}
                 label="Categoria"
                 onChange={(value) => updateForm('categoria', value ?? '')}
@@ -719,26 +720,26 @@ export function EquipmentsPage() {
                 value={form.categoria}
                 rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
                 rightSection={
-                  <ActionIcon 
-                    size="sm" 
-                    variant="light" 
-                    color="brand" 
+                  <ActionIcon
+                    size="sm"
+                    variant="light"
+                    color="brand"
                     onMouseDown={(e) => e.stopPropagation()} // NOVO: Evita abrir o Select
                     onClick={(e) => {
                       e.stopPropagation() // NOVO: Garante que só o modal abra
                       setQuickCategoryOpened(true)
-                    }} 
+                    }}
                     title="Nova categoria"
                   >
                     <AddIcon size={14} />
                   </ActionIcon>
                 }
               />
-              
+
               <TextInput label="Local" onChange={(event) => updateForm('local', event.currentTarget.value)} value={form.local} />
               <TextInput label="Tipo" onChange={(event) => updateForm('tipo', event.currentTarget.value)} value={form.tipo} />
               <TextInput label="Departamento" onChange={(event) => updateForm('departamento', event.currentTarget.value)} value={form.departamento} />
-              
+
               <Select
                 data={lookups?.equipamento_status ?? []}
                 label="Status"
@@ -746,7 +747,7 @@ export function EquipmentsPage() {
                 required
                 value={form.status}
               />
-              
+
               {/* SELECT DE RESPONSÁVEL COM BOTÃO NOVO */}
               <Select
                 clearable
@@ -758,22 +759,22 @@ export function EquipmentsPage() {
                 value={form.responsavel}
                 rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
                 rightSection={
-                  <ActionIcon 
-                    size="sm" 
-                    variant="light" 
-                    color="brand" 
+                  <ActionIcon
+                    size="sm"
+                    variant="light"
+                    color="brand"
                     onMouseDown={(e) => e.stopPropagation()} // NOVO
                     onClick={(e) => {
                       e.stopPropagation() // NOVO
                       openQuickCollab('responsavel')
-                    }} 
+                    }}
                     title="Novo colaborador"
                   >
                     <AddIcon size={14} />
                   </ActionIcon>
                 }
               />
-              
+
               {/* SELECT DE VALIDADOR COM BOTÃO NOVO */}
               <Select
                 clearable
@@ -785,15 +786,15 @@ export function EquipmentsPage() {
                 value={form.validador}
                 rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
                 rightSection={
-                  <ActionIcon 
-                    size="sm" 
-                    variant="light" 
-                    color="brand" 
+                  <ActionIcon
+                    size="sm"
+                    variant="light"
+                    color="brand"
                     onMouseDown={(e) => e.stopPropagation()} // NOVO
                     onClick={(e) => {
                       e.stopPropagation() // NOVO
                       openQuickCollab('validador')
-                    }} 
+                    }}
                     title="Novo validador"
                   >
                     <AddIcon size={14} />
@@ -811,7 +812,7 @@ export function EquipmentsPage() {
               clearable
               onChange={(payload: any) => updateForm('imagens', payload || [])}
               placeholder="Clique para selecionar as imagens..."
-              value={form.imagens} 
+              value={form.imagens}
             />
             <Group justify="flex-end">
               <AppButton color="gray" motionDisabled onClick={() => setOpened(false)} type="button" variant="subtle">
@@ -956,22 +957,22 @@ export function EquipmentsPage() {
         </form>
       </AppModal>
 
-      <AppModal 
-        onClose={() => setViewingEquipment(null)} 
-        opened={!!viewingEquipment} 
-        size="lg" 
+      <AppModal
+        onClose={() => setViewingEquipment(null)}
+        opened={!!viewingEquipment}
+        size="lg"
         title="Detalhes do Equipamento"
       >
         {viewingEquipment && (
           <Stack gap="xl">
             <Group wrap="nowrap" align="flex-start" gap="md">
               {viewingEquipment.foto_url ? (
-                <Image 
-                  alt={viewingEquipment.nome} 
-                  className="rounded-xl border border-slate-200" 
-                  h={100} 
-                  src={viewingEquipment.foto_url} 
-                  w={100} 
+                <Image
+                  alt={viewingEquipment.nome}
+                  className="rounded-xl border border-slate-200"
+                  h={100}
+                  src={getMediaUrl(viewingEquipment.foto_url)}
+                  w={100}
                   style={{ objectFit: 'cover' }}
                 />
               ) : (
@@ -979,16 +980,16 @@ export function EquipmentsPage() {
                   <EquipmentIcon size={40} />
                 </div>
               )}
-              
+
               <Stack gap="xs" style={{ flex: 1 }}>
                 <Group justify="space-between" align="flex-start">
                   <div>
                     <Text size="xl" fw={700}>{viewingEquipment.nome}</Text>
                     <Text c="dimmed" size="sm">Patrimônio: {viewingEquipment.num_patrimonio}</Text>
                   </div>
-                  <StatusBadge 
-                    label={(viewingEquipment as any).status_label || viewingEquipment.status} 
-                    value={viewingEquipment.status} 
+                  <StatusBadge
+                    label={(viewingEquipment as any).status_label || viewingEquipment.status}
+                    value={viewingEquipment.status}
                   />
                 </Group>
               </Stack>
@@ -999,7 +1000,7 @@ export function EquipmentsPage() {
                 <Text size="xs" tt="uppercase" fw={700} c="dimmed">Categoria</Text>
                 <Text fw={500}>{viewingEquipment.categoria?.nome || 'Sem categoria'}</Text>
               </Stack>
-              
+
               <Stack gap={0}>
                 <Text size="xs" tt="uppercase" fw={700} c="dimmed">Tipo</Text>
                 <Text fw={500}>{formatNullable(viewingEquipment.tipo)}</Text>
@@ -1046,15 +1047,15 @@ export function EquipmentsPage() {
                   <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb="xs">Galeria de Imagens</Text>
                   <Group gap="sm">
                     {(viewingEquipment as any).galeria.map((url: string, index: number) => (
-                      <Image 
-                        key={index} 
-                        src={url} 
-                        h={80} 
-                        w={80} 
-                        radius="md" 
+                      <Image
+                        key={index}
+                        src={getMediaUrl(url)}
+                        h={80}
+                        w={80}
+                        radius="md"
                         className="border border-slate-200"
-                        style={{ objectFit: 'cover', cursor: 'pointer' }} 
-                        onClick={() => window.open(url, '_blank')}
+                        style={{ objectFit: 'cover', cursor: 'pointer' }}
+                        onClick={() => window.open(getMediaUrl(url), '_blank', 'noopener,noreferrer')}
                         title="Clique para ampliar"
                       />
                     ))}
