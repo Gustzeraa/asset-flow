@@ -105,6 +105,9 @@ def serialize_collaborator(collaborator, assets=None):
     }
 
     termos = collaborator.termos_assinados.exclude(arquivo_assinado='').order_by('-data_emissao')
+    
+    data['termo_assinado'] = termos.exists()
+    
     data['termos_assinados'] = [
         {
             'id': t.id,
