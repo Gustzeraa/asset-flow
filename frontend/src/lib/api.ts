@@ -83,3 +83,30 @@ export function getApiErrorMessage(error: unknown, fallback = 'Ocorreu um erro i
   if (error instanceof Error) return error.message
   return fallback
 }
+
+export async function downloadFile(path: string, filename: string) {
+  // Faz a requisição incluindo as credenciais (cookies de login)
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('Falha ao baixar o arquivo. Verifique se você está logado.');
+  }
+
+  // Transforma a resposta num formato de arquivo (Blob)
+  const blob = await response.blob();
+  
+  // Cria um link temporário invisível no navegador e clica nele para baixar
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  
+  // Limpa o link temporário
+  link.parentNode?.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}

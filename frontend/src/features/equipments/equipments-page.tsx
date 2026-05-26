@@ -24,7 +24,7 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { apiFetch, getApiErrorMessage, downloadFile } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { formatDate, formatNullable } from '@/lib/format'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
@@ -494,18 +494,36 @@ export function EquipmentsPage() {
     )
   }
 
+  async function handleDownloadTemplate() {
+    try {
+      await downloadFile('/api/equipments/import/template/', 'modelo_importacao.csv')
+    } catch (error) {
+      appFeedback.error({ title: 'Erro ao baixar modelo', message: getApiErrorMessage(error) })
+    }
+  }
+
+  async function handleExport() {
+    try {
+      await downloadFile(`/api/equipments/export/${query ? `?${query}` : ''}`, 'exportacao_equipamentos.csv')
+    } catch (error) {
+      appFeedback.error({ title: 'Erro ao exportar', message: getApiErrorMessage(error) })
+    }
+  }
+
   return (
     <>
       <Stack gap="lg">
         <PageHeader
           actions={
             <Group>
-              <AppButton component="a" href="/api/equipments/import/template/" leftSection={<DownloadIcon size={14} />} variant="light">
+              <AppButton onClick={handleDownloadTemplate} leftSection={<DownloadIcon size={14} />} variant="light">
                 Baixar modelo
               </AppButton>
-              <AppButton component="a" href={`/api/equipments/export/${query ? `?${query}` : ''}`} leftSection={<DownloadIcon size={14} />} variant="light">
+              
+              <AppButton onClick={handleExport} leftSection={<DownloadIcon size={14} />} variant="light">
                 Exportar CSV
               </AppButton>
+              
               <AppButton leftSection={<UploadIcon size={14} />} onClick={() => setImportOpened(true)} variant="light">
                 Importar CSV
               </AppButton>
