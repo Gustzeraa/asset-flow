@@ -517,10 +517,6 @@ export function EquipmentsPage() {
         <PageHeader
           actions={
             <Group>
-              <AppButton onClick={handleDownloadTemplate} leftSection={<DownloadIcon size={14} />} variant="light">
-                Baixar modelo
-              </AppButton>
-
               <AppButton onClick={handleExport} leftSection={<DownloadIcon size={14} />} variant="light">
                 Exportar CSV
               </AppButton>
@@ -941,10 +937,34 @@ export function EquipmentsPage() {
       <AppModal onClose={() => setImportOpened(false)} opened={importOpened} size="lg" title="Importar equipamentos por CSV">
         <form onSubmit={handleImportSubmit}>
           <Stack gap="lg">
-            <Text c="dimmed" size="sm">
-              Use o modelo CSV padronizado para cadastrar grandes volumes sem perder consistência de categoria, patrimônio e status.
-            </Text>
-            <FileInput accept=".csv" label="Arquivo CSV" onChange={setImportFile} placeholder="Selecione o arquivo de importação" required value={importFile} />
+
+            {/* Criamos um Stack menor para agrupar o texto explicativo e o botão do modelo */}
+            <Stack gap="xs">
+              <Text c="dimmed" size="sm">
+                Use o modelo CSV padronizado para cadastrar grandes volumes sem perder consistência de categoria, patrimônio e status.
+              </Text>
+
+              {/* NOVO LUGAR DO BOTÃO (com type="button" para não submeter o formulário sem querer) */}
+              <AppButton
+                onClick={handleDownloadTemplate}
+                leftSection={<DownloadIcon size={14} />}
+                variant="light"
+                type="button"
+                w="fit-content"
+              >
+                Baixar modelo CSV
+              </AppButton>
+            </Stack>
+
+            <FileInput
+              accept=".csv"
+              label="Arquivo CSV"
+              onChange={setImportFile}
+              placeholder="Selecione o arquivo de importação..."
+              required
+              value={importFile}
+            />
+
             <Group justify="flex-end">
               <AppButton color="gray" motionDisabled onClick={() => setImportOpened(false)} type="button" variant="subtle">
                 Cancelar
