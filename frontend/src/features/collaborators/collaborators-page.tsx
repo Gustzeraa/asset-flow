@@ -11,7 +11,8 @@ import {
   Text,
   TextInput,
   FileInput,
-  Select
+  Select,
+  Table // NOVO: Importação da Tabela
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 
@@ -71,6 +72,7 @@ export function CollaboratorsPage() {
   const DocumentIcon = actionIcons.document
   const UploadIcon = actionIcons.upload
   const ArchiveIcon = actionIcons.document
+  const ViewIcon = actionIcons.view // NOVO: Ícone de visualização
 
   const CollaboratorsIcon = screenIcons.collaborators
   const LinkedAssetIcon = screenIcons.equipments
@@ -95,7 +97,7 @@ export function CollaboratorsPage() {
   const [isUploading, setIsUploading] = useState(false)
 
   const [viewingTerms, setViewingTerms] = useState<Collaborator | null>(null)
-
+  const [viewingCollaborator, setViewingCollaborator] = useState<any | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   const [quickDeptOpened, setQuickDeptOpened] = useState(false)
@@ -479,6 +481,16 @@ export function CollaboratorsPage() {
                 width: 180,
                 render: (item) => (
                   <Group gap="xs">
+                    {/* NOVO: Ajustado a variável 'item' no onClick */}
+                    <ActionIcon
+                      variant="subtle"
+                      color="blue"
+                      onClick={() => setViewingCollaborator(item)}
+                      title="Visualizar detalhes e ativos"
+                    >
+                      <ViewIcon size={15} />
+                    </ActionIcon>
+
                     <ActionIcon color="brand" onClick={() => openEdit(item)} radius="xl" variant="light" title="Editar">
                       <EditIcon size={15} />
                     </ActionIcon>
@@ -701,6 +713,83 @@ export function CollaboratorsPage() {
             </AppButton>
           </Group>
         </Stack>
+      </AppModal>
+
+      {/* NOVO: Modal de Visualização de Detalhes e Ativos do Colaborador */}
+      <AppModal
+        onClose={() => setViewingCollaborator(null)}
+        opened={!!viewingCollaborator}
+        size="lg"
+        title="Detalhes do Colaborador"
+      >
+        {viewingCollaborator && (
+          <Stack gap="xl">
+            <Group justify="space-between" align="flex-start">
+              <div>
+                <Text size="xl" fw={700}>{viewingCollaborator.nome}</Text>
+                <Text c="dimmed" size="sm">
+                  {viewingCollaborator.cargo} • {viewingCollaborator.departamento}
+                </Text>
+              </div>
+              <Badge color={viewingCollaborator.ativo ? 'green' : 'red'} variant="light">
+                {viewingCollaborator.ativo ? 'Ativo' : 'Inativo'}
+              </Badge>
+            </Group>
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">E-mail</Text>
+                <Text fw={500}>{viewingCollaborator.email || 'Não informado'}</Text>
+              </Stack>
+
+              <Stack gap={0}>
+                <Text size="xs" tt="uppercase" fw={700} c="dimmed">CPF</Text>
+                <Text fw={500}>{viewingCollaborator.cpf || 'Não informado'}</Text>
+              </Stack>
+            </SimpleGrid>
+
+            <Stack gap="xs">
+              <Text size="xs" tt="uppercase" fw={700} c="dimmed">
+                Equipamentos sob Responsabilidade ({viewingCollaborator.ativos_count || 0})
+              </Text>
+
+              {viewingCollaborator.ativos?.length > 0 ? (
+                <Table variant="striped" withTableBorder withColumnBorders={false}>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th style={{ width: '140px' }}>Patrimônio</Table.Th>
+                      <Table.Th>Item / Equipamento</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {viewingCollaborator.ativos.map((ativo: any) => (
+                      <Table.Tr key={ativo.id}>
+                        <Table.Td>
+                          <Text fw={700} size="sm" c="blue">
+                            {ativo.num_patrimonio}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">{ativo.nome}</Text>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              ) : (
+                <Text size="sm" fs="italic" c="dimmed" mt="xs">
+                  Este colaborador não possui nenhum equipamento vinculado no momento.
+                </Text>
+              )}
+            </Stack>
+
+            <Group justify="flex-end" mt="md">
+              <AppButton color="gray" onClick={() => setViewingCollaborator(null)} variant="subtle">
+                Fechar
+              </AppButton>
+            </Group>
+          </Stack>
+        )}
       </AppModal>
     </>
   )
