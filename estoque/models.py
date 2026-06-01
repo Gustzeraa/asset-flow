@@ -67,3 +67,32 @@ class EquipamentoImagem(models.Model):
 
     def __str__(self):
         return f"Imagem de {self.equipamento.nome}"
+    
+    
+class HistoricoTransferencia(models.Model):
+    equipamento = models.ForeignKey(
+        Equipamento, 
+        on_delete=models.CASCADE, 
+        related_name='historico_transferencias'
+    )
+    # Usamos SET_NULL para que, se um colaborador for excluído no futuro, o histórico da máquina não suma
+    responsavel_anterior = models.ForeignKey(
+        'rh.Colaborador', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='historico_anterior'
+    )
+    responsavel_novo = models.ForeignKey(
+        'rh.Colaborador', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='historico_novo'
+    )
+    data_transferencia = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        ant = self.responsavel_anterior.nome if self.responsavel_anterior else "Estoque Interno"
+        novo = self.responsavel_novo.nome if self.responsavel_novo else "Estoque Interno"
+        return f"{self.equipamento.nome}: {ant} ➔ {novo} ({self.data_transferencia.strftime('%d/%m/%Y')})"

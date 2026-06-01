@@ -66,7 +66,7 @@ def serialize_equipment_summary(equipment):
 
 
 def serialize_equipment(equipment):
-    return {
+    data = {
         'id': equipment.id,
         'data': equipment.data.isoformat() if equipment.data else None,
         'nome': equipment.nome,
@@ -88,6 +88,21 @@ def serialize_equipment(equipment):
         'excluido': equipment.excluido,
         'galeria': [img.imagem.url for img in equipment.galeria.all() if img.imagem] if hasattr(equipment, 'galeria') else [],
     }
+    
+    # NOVO: Injeta o histórico de transferências no JSON (Sem o hasattr)
+    historico_bd = equipment.historico_transferencias.all().order_by('-data_transferencia')
+    
+    data['historico'] = [
+        {
+            'id': h.id,
+            'data': h.data_transferencia.strftime('%d/%m/%Y %H:%M'),
+            'anterior': h.responsavel_anterior.nome if h.responsavel_anterior else 'Estoque Interno',
+            'novo': h.responsavel_novo.nome if h.responsavel_novo else 'Estoque Interno'
+        } for h in historico_bd
+    ]
+
+    print("🚨🚨🚨 PASSOU PELO SERIALIZER NOVO! CHAVES:", data.keys())
+    return data
 
 
 def serialize_collaborator(collaborator, assets=None):

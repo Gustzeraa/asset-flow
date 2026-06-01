@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   Textarea,
+  Timeline,
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 
@@ -1081,6 +1082,35 @@ export function EquipmentsPage() {
                     ))}
                   </Group>
                 </Stack>
+              )}
+            </Stack>
+
+            <Stack gap={0} mt="sm">
+              <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb="md">
+                Histórico de Transferências
+              </Text>
+              
+              {(viewingEquipment as any)?.historico?.length > 0 ? (
+                <Timeline active={0} bulletSize={24} lineWidth={2}>
+                  {(viewingEquipment as any).historico.map((item: any) => (
+                    <Timeline.Item 
+                      key={item.id} 
+                      title={`Transferido para: ${item.novo}`}
+                      bullet={<TransferIcon size={12} />} 
+                    >
+                      <Text c="dimmed" size="sm" mt={4}>
+                        De: {item.anterior}
+                      </Text>
+                      <Text size="xs" mt={4}>
+                        {item.data}
+                      </Text>
+                    </Timeline.Item>
+                  ))}
+                </Timeline>
+              ) : (
+                <Text size="sm" fs="italic" c="dimmed">
+                  Este equipamento ainda não possui histórico de transferências.
+                </Text>
               )}
             </Stack>
 

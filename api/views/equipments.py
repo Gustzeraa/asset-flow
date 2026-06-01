@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from api.serializers import serialize_equipment
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json, request_data
 from estoque.forms import EquipamentoForm
-from estoque.models import Categoria, Equipamento, EquipamentoImagem 
+from estoque.models import Categoria, Equipamento, EquipamentoImagem, HistoricoTransferencia
 from rh.models import Colaborador
 import csv
 from django.http import HttpResponse
@@ -26,7 +26,7 @@ def _filtered_equipments(params):
     # NOVO: Adicionado .prefetch_related('galeria') para otimizar a busca das fotos no banco
     equipments = Equipamento.objects.filter(excluido=False).select_related(
         'categoria', 'responsavel', 'validador'
-    ).prefetch_related('galeria')
+    ).prefetch_related('galeria', 'historico_transferencias')
 
     if search:
         equipments = equipments.filter(
@@ -84,14 +84,17 @@ def equipments_collection(request):
 @require_http_methods(['GET', 'POST'])
 @api_login_required
 def equipment_detail(request, equipment_id):
-    # NOVO: Adicionado .prefetch_related('galeria') aqui também
+    # O prefetch_related garante que o histórico venha rápido
     equipment = get_object_or_404(
-        Equipamento.objects.select_related('categoria', 'responsavel', 'validador').prefetch_related('galeria'), 
+        Equipamento.objects.select_related('categoria', 'responsavel', 'validador').prefetch_related('galeria', 'historico_transferencias'), 
         id=equipment_id
     )
 
     if request.method == 'GET':
         return JsonResponse({'item': serialize_equipment(equipment)})
+
+    # 1. O DETETIVE: Guarda quem era o responsável ANTES de salvar a edição
+    responsavel_antigo = equipment.responsavel
 
     form = EquipamentoForm(request.POST, request.FILES, instance=equipment)
     if not form.is_valid():
@@ -99,7 +102,16 @@ def equipment_detail(request, equipment_id):
 
     equipment = form.save()
     
-    # NOVO: Salva as imagens da galeria enviadas na edição
+    # 2. O GATILHO: Se o responsável mudou durante a edição, cria o histórico na mesma hora!
+    if responsavel_antigo != equipment.responsavel:
+        from estoque.models import HistoricoTransferencia # Import local para garantir que funciona
+        HistoricoTransferencia.objects.create(
+            equipamento=equipment,
+            responsavel_anterior=responsavel_antigo,
+            responsavel_novo=equipment.responsavel
+        )
+
+    # Salva as imagens da galeria
     fotos_extras = request.FILES.getlist('galeria')
     for foto in fotos_extras[:5]:
         EquipamentoImagem.objects.create(equipamento=equipment, imagem=foto)
@@ -114,17 +126,29 @@ def transfer_equipment(request, equipment_id):
     data = request_data(request)
     collaborator_id = data.get('novo_responsavel') or data.get('responsavel_id')
 
+    # 1. Guarda o responsável antigo antes de sobrescrever
+    responsavel_anterior = equipment.responsavel 
+
     if collaborator_id:
         collaborator = get_object_or_404(Colaborador, id=collaborator_id, excluido=False)
         equipment.responsavel = collaborator
         equipment.status = 'em_uso'
         detail = f'{equipment.nome} transferido para {collaborator.nome}.'
     else:
+        collaborator = None
         equipment.responsavel = None
         equipment.status = 'disponivel'
         detail = f'{equipment.nome} devolvido ao estoque.'
 
     equipment.save()
+
+    # 2. Salva o registro no histórico
+    HistoricoTransferencia.objects.create(
+        equipamento=equipment,
+        responsavel_anterior=responsavel_anterior,
+        responsavel_novo=collaborator
+    )
+
     return JsonResponse({'detail': detail, 'item': serialize_equipment(equipment)})
 
 
@@ -150,11 +174,29 @@ def bulk_transfer(request):
 
     if collaborator_id:
         collaborator = get_object_or_404(Colaborador, id=collaborator_id, excluido=False)
-        equipments.update(responsavel=collaborator, status='em_uso')
+        status_novo = 'em_uso'
         detail = f'{equipments.count()} equipamento(s) transferido(s) para {collaborator.nome}.'
     else:
-        equipments.update(responsavel=None, status='disponivel')
+        collaborator = None
+        status_novo = 'disponivel'
         detail = f'{equipments.count()} equipamento(s) devolvido(s) ao estoque.'
+
+    # 1. Prepara o histórico ANTES de atualizar os dados no banco
+    historicos = []
+    for eq in equipments:
+        historicos.append(
+            HistoricoTransferencia(
+                equipamento=eq,
+                responsavel_anterior=eq.responsavel,
+                responsavel_novo=collaborator
+            )
+        )
+
+    # 2. Cria todos os registros de histórico de uma vez só (alta performance)
+    HistoricoTransferencia.objects.bulk_create(historicos)
+
+    # 3. Atualiza todos os equipamentos de uma vez
+    equipments.update(responsavel=collaborator, status=status_novo)
 
     return JsonResponse({'detail': detail})
 
