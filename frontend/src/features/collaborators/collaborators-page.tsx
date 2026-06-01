@@ -477,17 +477,14 @@ export function CollaboratorsPage() {
               },
               {
                 key: 'acoes',
-                label: 'Acoes',
+                label: 'Ações',
                 width: 180,
                 render: (item) => (
-                  <Group gap="xs">
-                    {/* NOVO: Ajustado a variável 'item' no onClick */}
-                    <ActionIcon
-                      variant="subtle"
-                      color="blue"
-                      onClick={() => setViewingCollaborator(item)}
-                      title="Visualizar detalhes e ativos"
-                    >
+                  // O justify="center" garante que os ícones que caírem para a segunda linha fiquem no meio
+                  <Group gap="xs" justify="center">
+                    
+                    {/* Visual ajustado: variant="light" e radius="xl" */}
+                    <ActionIcon color="blue" onClick={() => setViewingCollaborator(item)} radius="xl" variant="light" title="Visualizar detalhes e ativos">
                       <ViewIcon size={15} />
                     </ActionIcon>
 
@@ -517,6 +514,7 @@ export function CollaboratorsPage() {
                     <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light" title="Excluir">
                       <DeleteIcon size={15} />
                     </ActionIcon>
+                    
                   </Group>
                 ),
               },
