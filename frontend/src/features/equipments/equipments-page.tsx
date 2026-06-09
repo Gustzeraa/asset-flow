@@ -735,7 +735,16 @@ export function EquipmentsPage() {
 
               <TextInput label="Local" onChange={(event) => updateForm('local', event.currentTarget.value)} value={form.local} />
               <TextInput label="Tipo" onChange={(event) => updateForm('tipo', event.currentTarget.value)} value={form.tipo} />
-              <TextInput label="Departamento" onChange={(event) => updateForm('departamento', event.currentTarget.value)} value={form.departamento} />
+              
+              <Select
+                label="Departamento"
+                placeholder="Selecione o departamento"
+                data={lookups?.departamentos?.map((d) => ({ value: d.nome, label: d.nome })) ?? []}
+                value={form.departamento}
+                onChange={(value) => updateForm('departamento', value ?? '')}
+                searchable
+                clearable
+              />
 
               <Select
                 data={lookups?.equipamento_status ?? []}
