@@ -147,6 +147,11 @@ export function EquipmentsPage() {
   const [quickCollabForm, setQuickCollabForm] = useState({ nome: '', cargo: '', email: '', departamento_id: '' })
   const [isSavingQuickCollab, setIsSavingQuickCollab] = useState(false)
 
+  // Quick Departamento
+  const [quickDeptOpened, setQuickDeptOpened] = useState(false)
+  const [quickDeptName, setQuickDeptName] = useState('')
+  const [isSavingQuickDept, setIsSavingQuickDept] = useState(false)
+
   async function handleQuickCreateCategory(event: React.FormEvent) {
     event.preventDefault()
     if (!quickCategoryName.trim()) return
@@ -169,6 +174,33 @@ export function EquipmentsPage() {
       appFeedback.error({ title: 'Erro ao criar categoria', message: getApiErrorMessage(error) })
     } finally {
       setIsSavingQuickCategory(false)
+    }
+  }
+
+  async function handleQuickCreateDepartamento(event: React.FormEvent) {
+    event.preventDefault()
+    if (!quickDeptName.trim()) return
+
+    setIsSavingQuickDept(true)
+    try {
+      // Assumindo que a rota da sua API para departamentos seja /api/departments/
+      const response = await apiFetch<{ item: { id: number, nome: string } }>('/api/departments/', {
+        method: 'POST',
+        body: JSON.stringify({ nome: quickDeptName }),
+      })
+      appFeedback.success({
+        title: 'Departamento criado',
+        message: `O departamento "${response.item.nome}" foi criado com sucesso.`
+      })
+      await refreshLookups()
+      // Atualizamos o form com o NOME, pois o select de departamento envia o texto
+      updateForm('departamento', response.item.nome)
+      setQuickDeptOpened(false)
+      setQuickDeptName('')
+    } catch (error) {
+      appFeedback.error({ title: 'Erro ao criar departamento', message: getApiErrorMessage(error) })
+    } finally {
+      setIsSavingQuickDept(false)
     }
   }
 
@@ -744,6 +776,22 @@ export function EquipmentsPage() {
                 onChange={(value) => updateForm('departamento', value ?? '')}
                 searchable
                 clearable
+                rightSectionPointerEvents="auto"
+                rightSection={
+                  <ActionIcon
+                    size="sm"
+                    variant="light"
+                    color="brand"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setQuickDeptOpened(true)
+                    }}
+                    title="Novo departamento"
+                  >
+                    <AddIcon size={14} />
+                  </ActionIcon>
+                }
               />
 
               <Select
@@ -1130,6 +1178,25 @@ export function EquipmentsPage() {
             </Group>
           </Stack>
         )}
+      </AppModal>
+
+      <AppModal opened={quickDeptOpened} onClose={() => setQuickDeptOpened(false)} title="Novo Departamento Rápido" size="sm">
+        <form onSubmit={handleQuickCreateDepartamento}>
+          <Stack gap="md">
+            <TextInput
+              label="Nome do departamento"
+              placeholder="Ex: Financeiro, TI, Almoxarifado..."
+              required
+              data-autofocus
+              value={quickDeptName}
+              onChange={(e) => setQuickDeptName(e.currentTarget.value)}
+            />
+            <Group justify="flex-end">
+              <AppButton variant="subtle" color="gray" onClick={() => setQuickDeptOpened(false)} type="button">Cancelar</AppButton>
+              <AppButton type="submit" loading={isSavingQuickDept}>Salvar</AppButton>
+            </Group>
+          </Stack>
+        </form>
       </AppModal>
     </>
   )
