@@ -1,5 +1,5 @@
 // A URL definitiva do seu Railway
-const API_BASE_URL = 'https://asset-flow-production-17bf.up.railway.app'
+const API_BASE_URL = 'http://127.0.0.1:5173'
 
 // Guardamos o token na memória do Javascript
 let savedCsrfToken = ''
@@ -118,6 +118,6 @@ export function getMediaUrl(path: string | null | undefined) {
   if (path.startsWith('http')) return path;
   
   // Substitua pela SUA URL exata do Railway
-  const backendUrl = 'https://asset-flow-production-17bf.up.railway.app'; 
+  const backendUrl = 'http://127.0.0.1:5173'; 
   return `${backendUrl}${path}`;
 }

@@ -201,3 +201,31 @@ def serialize_lookups_payload(*, categories, collaborators, departments):
         'consumivel_unidades': serialize_choices(Consumivel.UNIDADES),
         'movimentacao_tipos': serialize_choices(MovimentacaoConsumivel.TIPOS),
     }
+    
+
+def serialize_aceite_digital(aceite):
+    if not aceite:
+        return None
+        
+    return {
+        'id': aceite.id,
+        'data_hora_aceite': aceite.data_hora_aceite.strftime('%d/%m/%Y %H:%M:%S'),
+        'ip_origem': aceite.ip_origem,
+        'user_agent': aceite.user_agent,
+    }
+
+def serialize_contracheque(contracheque):
+    aceite = getattr(contracheque, 'aceite_digital', None)
+    
+    return {
+        'id': contracheque.id,
+        'colaborador_id': contracheque.colaborador_id,
+        'colaborador_nome': contracheque.colaborador.nome if contracheque.colaborador else 'Desconhecido',
+        'mes_referencia': contracheque.mes_referencia.isoformat() if contracheque.mes_referencia else None,
+        'mes_referencia_label': contracheque.mes_referencia.strftime('%m/%Y') if contracheque.mes_referencia else None,
+        'arquivo_pdf_url': contracheque.arquivo_pdf.url if contracheque.arquivo_pdf else None,
+        'status': contracheque.status,
+        'status_label': contracheque.get_status_display(),
+        'aceite_digital': serialize_aceite_digital(aceite),
+        'criado_em': contracheque.criado_em.isoformat() if contracheque.criado_em else None,
+    }

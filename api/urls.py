@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import auth, categories, collaborators, consumables, dashboard, equipments, lookups, trash, users, departments
+from .views import auth, categories, collaborators, consumables, dashboard, equipments, lookups, trash, users, departments, payroll
 
 
 urlpatterns = [
@@ -43,4 +43,6 @@ urlpatterns = [
     path('trash/<str:item_type>/<int:item_id>/', trash.delete_item, name='api_trash_delete'),
     path('users/', users.users_collection, name='api_users'),
     path('users/<int:user_id>/', users.user_detail, name='api_user_detail'),
+    path('contracheques/', payroll.contracheques_collection, name='api_contracheques'),
+    path('contracheques/<int:contracheque_id>/assinar/', payroll.assinar_contracheque, name='api_assinar_contracheque'),
 ]

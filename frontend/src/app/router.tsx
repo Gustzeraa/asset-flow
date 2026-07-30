@@ -16,6 +16,8 @@ import { MovementsPage } from '@/features/movements/movements-page'
 import { TrashPage } from '@/features/trash/trash-page'
 import { UsersPage } from '@/features/users/users-page'
 
+import { UploadContracheque } from '@/features/payroll/upload-payroll'
+import { ListaContrachequesColaborador } from '@/features/payroll/my-payroll'
 
 function getNextPath(search: string) {
   const nextPath = new URLSearchParams(search).get('next')
@@ -26,11 +28,15 @@ function getNextPath(search: string) {
   return nextPath
 }
 
-
 function isSpaPath(pathname: string) {
-  return ['/', '/dashboard', '/equipamentos', '/categorias', '/colaboradores', '/consumiveis', '/historico', '/lixeira', '/login', '/usuarios'].includes(pathname)
+  // 2. ADIÇÃO DAS ROTAS NA LISTA DE VALIDAÇÃO DO SPA
+  return [
+    '/', '/dashboard', '/equipamentos', '/categorias', 
+    '/colaboradores', '/consumiveis', '/historico', 
+    '/lixeira', '/login', '/usuarios', '/departamentos',
+    '/rh/contracheques/upload', '/meus-contracheques' // <-- NOVAS ROTAS AQUI
+  ].includes(pathname)
 }
-
 
 function LegacyRedirect({ to }: { to: string }) {
   useEffect(() => {
@@ -43,7 +49,6 @@ function LegacyRedirect({ to }: { to: string }) {
     </Center>
   )
 }
-
 
 function ProtectedRoute() {
   const location = useLocation()
@@ -60,7 +65,6 @@ function ProtectedRoute() {
 
   return <AppShellLayout />
 }
-
 
 function LoginGuard() {
   const location = useLocation()
@@ -86,7 +90,6 @@ function LoginGuard() {
   return <LoginPage />
 }
 
-
 export function AppRouter() {
   return (
     <Router>
@@ -103,6 +106,11 @@ export function AppRouter() {
           <Route element={<MovementsPage />} path="/historico" />
           <Route element={<TrashPage />} path="/lixeira" />
           <Route element={<UsersPage />} path="/usuarios" />
+          
+          {/* 3. AS NOVAS ROTAS PROTEGIDAS DO MÓDULO DE RH */}
+          <Route element={<UploadContracheque />} path="/rh/contracheques/upload" />
+          <Route element={<ListaContrachequesColaborador />} path="/meus-contracheques" />
+          
         </Route>
         <Route element={<Navigate replace to="/dashboard" />} path="*" />
       </Routes>
