@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'estoque',
     'rh',
     'consumiveis',
-    'folha',
 ]
 
 MIDDLEWARE = [

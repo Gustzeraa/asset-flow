@@ -9,7 +9,6 @@ from .views import dashboard
 from .views import departments
 from .views import equipments
 from .views import lookups
-from .views import payroll
 from .views import trash
 
 
@@ -53,6 +52,4 @@ urlpatterns = [
     path('trash/<str:item_type>/<int:item_id>/', trash.delete_item, name='api_trash_delete'),
     path('users/', users.users_collection, name='api_users'),
     path('users/<int:user_id>/', users.user_detail, name='api_user_detail'),
-    path('contracheques/', payroll.contracheques_collection, name='api_contracheques'),
-    path('contracheques/<int:contracheque_id>/assinar/', payroll.assinar_contracheque, name='api_assinar_contracheque'),
 ]

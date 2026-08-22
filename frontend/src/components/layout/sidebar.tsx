@@ -5,8 +5,6 @@ import { useAuth } from '@/app/auth-context'
 import { brandIcons, screenIcons } from '@/lib/app-icons'
 import { cn } from '@/lib/utils'
 
-// NOVO: Importando os ícones para a folha de pagamento
-import { IconReceipt, IconFileInvoice } from '@tabler/icons-react'
 
 type MenuItem = {
   label: string
@@ -18,14 +16,6 @@ type MenuItem = {
 
 const items: MenuItem[] = [
   { label: 'Dashboard', description: 'Indicadores executivos', to: '/dashboard', icon: screenIcons.dashboard },
-  
-  // NOVO: Menu do colaborador (Aparece para todos)
-  { 
-    label: 'Meus Recibos', 
-    description: 'Acesse seus contracheques', 
-    to: '/meus-contracheques', 
-    icon: IconReceipt 
-  },
   
   { 
     label: 'Equipamentos', 
@@ -186,17 +176,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             <>
               <div className="my-2 border-t border-white/10 mx-4" />
               
-              {/* NOVO: Menu restrito ao RH para envio de holerites em lote */}
-              <SingleNavItem 
-                item={{ 
-                  label: 'Folha de Pagamento', 
-                  description: 'Upload de contracheques', 
-                  to: '/rh/contracheques/upload', 
-                  icon: IconFileInvoice 
-                }} 
-                onNavigate={onNavigate} 
-              />
-
               <SingleNavItem 
                 item={{ 
                   label: 'Usuários', 

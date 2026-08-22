@@ -12,8 +12,6 @@ const titles: Record<string, string> = {
   '/consumiveis': 'Almoxarifado',
   '/historico': 'Historico operacional',
   '/lixeira': 'Lixeira operacional',
-  '/rh/contracheques/upload': 'Upload de Contracheques',
-  '/meus-contracheques': 'Meus Contracheques',
 }
 
 

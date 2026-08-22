@@ -16,8 +16,6 @@ import { MovementsPage } from '@/features/movements/movements-page'
 import { TrashPage } from '@/features/trash/trash-page'
 import { UsersPage } from '@/features/users/users-page'
 
-import { UploadContracheque } from '@/features/payroll/upload-payroll'
-import { ListaContrachequesColaborador } from '@/features/payroll/my-payroll'
 
 function getNextPath(search: string) {
   const nextPath = new URLSearchParams(search).get('next')
@@ -107,9 +105,6 @@ export function AppRouter() {
           <Route element={<TrashPage />} path="/lixeira" />
           <Route element={<UsersPage />} path="/usuarios" />
           
-          {/* 3. AS NOVAS ROTAS PROTEGIDAS DO MÓDULO DE RH */}
-          <Route element={<UploadContracheque />} path="/rh/contracheques/upload" />
-          <Route element={<ListaContrachequesColaborador />} path="/meus-contracheques" />
           
         </Route>
         <Route element={<Navigate replace to="/dashboard" />} path="*" />
