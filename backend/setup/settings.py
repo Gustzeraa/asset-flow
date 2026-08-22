@@ -68,7 +68,7 @@ ROOT_URLCONF = 'setup.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ([FRONTEND_DIST_DIR] if FRONTEND_DIST_DIR.exists() else []) + [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR.parent / 'frontend' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -1,6 +1,16 @@
 from django.urls import path
 
-from .views import auth, categories, collaborators, consumables, dashboard, equipments, lookups, trash, users, departments, payroll
+from .views import users
+from .views import auth
+from .views import categories
+from .views import collaborators
+from .views import consumables
+from .views import dashboard
+from .views import departments
+from .views import equipments
+from .views import lookups
+from .views import payroll
+from .views import trash
 
 
 urlpatterns = [
