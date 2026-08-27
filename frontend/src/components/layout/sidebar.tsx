@@ -23,6 +23,8 @@ const items: MenuItem[] = [
     icon: screenIcons.equipments,
     children: [
       { label: 'Lista de Equipamentos', to: '/equipamentos' },
+      { label: 'Controle Contábil', to: '/controle-contabil' }, // A próxima tela que vamos criar
+      { label: 'Centros de Custo', to: '/centros-custo' }, // A tela que acabamos de criar!
       { label: 'Categorias', to: '/categorias' }
     ]
   },

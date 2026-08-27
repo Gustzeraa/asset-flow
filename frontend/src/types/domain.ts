@@ -26,11 +26,22 @@ export type Department = {
   equipamentos_count?: number
 }
 
+// ==========================================
+// NOVO TIPO: Centro de Custo (Módulo Financeiro)
+// ==========================================
+export type CentroCusto = {
+  id: number
+  codigo: string
+  nome: string
+  orcamento_anual: string | null
+  total_investido?: number | string | null
+}
+
 export type CollaboratorSummary = {
   id: number
   nome: string
   cargo: string
-  departamento_id: number | null // Adicionado ID
+  departamento_id: number | null
   departamento: string
   email: string
   ativo: boolean
@@ -51,16 +62,21 @@ export type Equipment = {
   num_patrimonio: string
   categoria_id: number | null
   categoria: Category | null
-  local: string | null
-  tipo: string | null
+  
+  // Vínculos Financeiros
+  centro_de_custo_id?: number | null
+  centro_de_custo?: CentroCusto | null
+  valor_compra: string
+  data_compra: string | null
+  taxa_depreciacao_anual?: string
+  valor_atual_contabil?: string // Calculado pelo back-end
+  
   departamento: string | null
   descricao: string | null
   status: string
   status_label: string
   responsavel_id: number | null
   responsavel: CollaboratorSummary | null
-  validador_id: number | null
-  validador: CollaboratorSummary | null
   observacao: string | null
   foto_url: string | null
   excluido: boolean
@@ -72,7 +88,7 @@ export type Collaborator = {
   cpf: string | null
   cargo: string
   email: string
-  departamento_id: number | null // Adicionado ID
+  departamento_id: number | null
   departamento: string
   ativo: boolean
   excluido: boolean
@@ -129,8 +145,9 @@ export type DashboardData = {
 
 export type Lookups = {
   categorias: Category[]
-  departamentos: Department[] // NOVO: Adicionado à lista de lookups globais
+  departamentos: Department[] 
   colaboradores: CollaboratorSummary[]
+  centros_custo: CentroCusto[] // NOVO: Adicionado à lista de lookups globais
   equipamento_status: ApiOption[]
   consumivel_unidades: ApiOption[]
   movimentacao_tipos: ApiOption[]

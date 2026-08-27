@@ -15,6 +15,8 @@ import { EquipmentsPage } from '@/features/equipments/equipments-page'
 import { MovementsPage } from '@/features/movements/movements-page'
 import { TrashPage } from '@/features/trash/trash-page'
 import { UsersPage } from '@/features/users/users-page'
+import { CentrosCustoPage } from '@/features/equipments/costcenter-page'
+import { ControleContabilPage } from '@/features/equipments/accountingcontrol-page'
 
 
 function getNextPath(search: string) {
@@ -27,12 +29,13 @@ function getNextPath(search: string) {
 }
 
 function isSpaPath(pathname: string) {
-  // 2. ADIÇÃO DAS ROTAS NA LISTA DE VALIDAÇÃO DO SPA
+  // ADICIONAMOS AS DUAS ROTAS NOVAS AQUI NA LISTA
   return [
     '/', '/dashboard', '/equipamentos', '/categorias', 
     '/colaboradores', '/consumiveis', '/historico', 
     '/lixeira', '/login', '/usuarios', '/departamentos',
-    '/rh/contracheques/upload', '/meus-contracheques' // <-- NOVAS ROTAS AQUI
+    '/rh/contracheques/upload', '/meus-contracheques',
+    '/centros-custo', '/controle-contabil' // <-- AQUI!
   ].includes(pathname)
 }
 
@@ -97,6 +100,8 @@ export function AppRouter() {
           <Route element={<Navigate replace to="/dashboard" />} path="/" />
           <Route element={<DashboardPage />} path="/dashboard" />
           <Route element={<EquipmentsPage />} path="/equipamentos" />
+          <Route element={<CentrosCustoPage />} path="/centros-custo" />
+          <Route element={<ControleContabilPage />} path="/controle-contabil" />
           <Route element={<CategoriesPage />} path="/categorias" />
           <Route element={<CollaboratorsPage />} path="/colaboradores" />
           <Route element={<DepartmentsPage />} path="/departamentos" />

@@ -47,13 +47,10 @@ type EquipmentFormState = {
   nome: string
   num_patrimonio: string
   categoria: string
-  local: string
-  tipo: string
   departamento: string
   descricao: string
   status: string
   responsavel: string
-  validador: string
   observacao: string
   imagens: []
 }
@@ -66,13 +63,10 @@ function createInitialEquipmentForm(defaultStatus: string): EquipmentFormState {
     nome: '',
     num_patrimonio: '',
     categoria: '',
-    local: '',
-    tipo: '',
     departamento: '',
     descricao: '',
     status: defaultStatus,
     responsavel: '',
-    validador: '',
     observacao: '',
     imagens: [],
   }
@@ -143,7 +137,7 @@ export function EquipmentsPage() {
 
   // Quick Colaborador
   const [quickCollabOpened, setQuickCollabOpened] = useState(false)
-  const [quickCollabTarget, setQuickCollabTarget] = useState<'responsavel' | 'validador' | null>(null)
+  const [quickCollabTarget, setQuickCollabTarget] = useState<'responsavel' | null>(null)
   const [quickCollabForm, setQuickCollabForm] = useState({ nome: '', cargo: '', email: '', departamento_id: '' })
   const [isSavingQuickCollab, setIsSavingQuickCollab] = useState(false)
 
@@ -240,7 +234,7 @@ export function EquipmentsPage() {
     }
   }
 
-  function openQuickCollab(target: 'responsavel' | 'validador') {
+  function openQuickCollab(target: 'responsavel') {
     setQuickCollabTarget(target)
     setQuickCollabForm({ nome: '', cargo: '', email: '', departamento_id: '' })
     setQuickCollabOpened(true)
@@ -273,13 +267,10 @@ export function EquipmentsPage() {
       nome: item.nome,
       num_patrimonio: item.num_patrimonio,
       categoria: item.categoria_id ? String(item.categoria_id) : '',
-      local: item.local ?? '',
-      tipo: item.tipo ?? '',
       departamento: item.departamento ?? '',
       descricao: item.descricao ?? '',
       status: item.status,
       responsavel: item.responsavel_id ? String(item.responsavel_id) : '',
-      validador: item.validador_id ? String(item.validador_id) : '',
       observacao: item.observacao ?? '',
       imagens: [],
     })
@@ -328,13 +319,10 @@ export function EquipmentsPage() {
     formData.append('nome', form.nome)
     formData.append('num_patrimonio', form.num_patrimonio)
     formData.append('categoria', form.categoria)
-    formData.append('local', form.local)
-    formData.append('tipo', form.tipo)
     formData.append('departamento', form.departamento)
     formData.append('descricao', form.descricao)
     formData.append('status', form.status)
     formData.append('responsavel', form.responsavel)
-    formData.append('validador', form.validador)
     formData.append('observacao', form.observacao)
 
     const imagensArray = Array.isArray(form.imagens)
@@ -611,27 +599,30 @@ export function EquipmentsPage() {
         </AppCard>
 
         {selectedIds.size > 0 ? (
-          <AppCard className="border-brand-200/80 bg-brand-0/66 shadow-none">
-            <Group justify="space-between" wrap="wrap">
-              <Stack gap={2}>
-                <Text fw={800}>{selectedIds.size} equipamento(s) selecionado(s)</Text>
-                <Text c="dimmed" size="sm">
-                  Execute ações em lote mantendo o fluxo do inventário consistente.
-                </Text>
-              </Stack>
-              <Group>
-                <AppButton color="dark" leftSection={<TransferIcon size={14} />} onClick={openBulkTransfer} variant="light">
-                  Transferir lote
-                </AppButton>
-                <AppButton color="dark" leftSection={<CategoryIcon size={14} />} onClick={() => setCategoryOpened(true)} variant="light">
-                  Alterar categoria
-                </AppButton>
-                <AppButton color="red" leftSection={<DeleteIcon size={14} />} onClick={handleBulkTrash} variant="light">
-                  Enviar para lixeira
-                </AppButton>
-              </Group>
+          <Group className="bg-brand-50 border border-brand-200 px-4 py-3 rounded-lg" justify="space-between" wrap="wrap">
+            <Text fw={600} className="text-brand-700">
+              {selectedIds.size} equipamento(s) selecionado(s)
+            </Text>
+            
+            <Group>
+              {/* Botão de cancelar seleção (outline) */}
+              <AppButton size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+                Cancelar seleção
+              </AppButton>
+              
+              <AppButton size="sm" color="red" leftSection={<DeleteIcon size={14} />} onClick={handleBulkTrash}>
+                Enviar para lixeira
+              </AppButton>
+              
+              <AppButton size="sm" leftSection={<CategoryIcon size={14} />} onClick={() => setCategoryOpened(true)}>
+                Alterar categoria
+              </AppButton>
+              
+              <AppButton size="sm" leftSection={<TransferIcon size={14} />} onClick={openBulkTransfer}>
+                Transferir lote
+              </AppButton>
             </Group>
-          </AppCard>
+          </Group>
         ) : null}
 
         <AppCard>
@@ -665,7 +656,7 @@ export function EquipmentsPage() {
                     <Stack gap={0}>
                       <Text fw={700}>{item.nome}</Text>
                       <Text c="dimmed" size="xs">
-                        {item.categoria?.nome ?? 'Sem categoria'} · {formatNullable(item.tipo)}
+                        {item.categoria?.nome ?? 'Sem categoria'}
                       </Text>
                     </Stack>
                   </Group>
@@ -688,12 +679,6 @@ export function EquipmentsPage() {
                     </Text>
                   </Stack>
                 ),
-              },
-              {
-                key: 'local',
-                label: 'Local',
-                width: 180,
-                render: (item) => formatNullable(item.local),
               },
               {
                 key: 'acoes',
@@ -765,9 +750,7 @@ export function EquipmentsPage() {
                 }
               />
 
-              <TextInput label="Local" onChange={(event) => updateForm('local', event.currentTarget.value)} value={form.local} />
-              <TextInput label="Tipo" onChange={(event) => updateForm('tipo', event.currentTarget.value)} value={form.tipo} />
-              
+
               <Select
                 label="Departamento"
                 placeholder="Selecione o departamento"
@@ -829,32 +812,6 @@ export function EquipmentsPage() {
                 }
               />
 
-              {/* SELECT DE VALIDADOR COM BOTÃO NOVO */}
-              <Select
-                clearable
-                searchable
-                data={lookups?.colaboradores.map((item) => ({ value: String(item.id), label: item.nome })) ?? []}
-                label="Validador"
-                onChange={(value) => updateForm('validador', value ?? '')}
-                placeholder="Sem validador"
-                value={form.validador}
-                rightSectionPointerEvents="auto" // NOVO: Libera o clique no ícone
-                rightSection={
-                  <ActionIcon
-                    size="sm"
-                    variant="light"
-                    color="brand"
-                    onMouseDown={(e) => e.stopPropagation()} // NOVO
-                    onClick={(e) => {
-                      e.stopPropagation() // NOVO
-                      openQuickCollab('validador')
-                    }}
-                    title="Novo validador"
-                  >
-                    <AddIcon size={14} />
-                  </ActionIcon>
-                }
-              />
             </SimpleGrid>
             <Textarea autosize label="Descricao" minRows={3} onChange={(event) => updateForm('descricao', event.currentTarget.value)} value={form.descricao} />
             <Textarea autosize label="Observacao" minRows={3} onChange={(event) => updateForm('observacao', event.currentTarget.value)} value={form.observacao} />
@@ -1080,18 +1037,8 @@ export function EquipmentsPage() {
               </Stack>
 
               <Stack gap={0}>
-                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Tipo</Text>
-                <Text fw={500}>{formatNullable(viewingEquipment.tipo)}</Text>
-              </Stack>
-
-              <Stack gap={0}>
                 <Text size="xs" tt="uppercase" fw={700} c="dimmed">Departamento</Text>
                 <Text fw={500}>{formatNullable(viewingEquipment.departamento)}</Text>
-              </Stack>
-
-              <Stack gap={0}>
-                <Text size="xs" tt="uppercase" fw={700} c="dimmed">Local</Text>
-                <Text fw={500}>{formatNullable(viewingEquipment.local)}</Text>
               </Stack>
 
               <Stack gap={0}>

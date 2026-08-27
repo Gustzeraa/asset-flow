@@ -79,7 +79,19 @@ export async function apiFetch<T>(path: string, init: FetchInit = {}) {
 }
 
 export function getApiErrorMessage(error: unknown, fallback = 'Ocorreu um erro inesperado.') {
-  if (error instanceof ApiError) return error.message
+  if (error instanceof ApiError) {
+    const payload = error.payload
+    if (typeof payload === 'object' && payload !== null && 'errors' in payload) {
+      const errors = payload.errors
+      if (typeof errors === 'object' && errors !== null) {
+        const details = Object.entries(errors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : String(messages)}`)
+          .join(' | ')
+        if (details) return details
+      }
+    }
+    return error.message
+  }
   if (error instanceof Error) return error.message
   return fallback
 }

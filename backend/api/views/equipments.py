@@ -25,14 +25,13 @@ def _filtered_equipments(params):
 
     # NOVO: Adicionado .prefetch_related('galeria') para otimizar a busca das fotos no banco
     equipments = Equipamento.objects.filter(excluido=False).select_related(
-        'categoria', 'responsavel', 'validador'
+        'categoria', 'responsavel'
     ).prefetch_related('galeria', 'historico_transferencias')
 
     if search:
         equipments = equipments.filter(
             Q(nome__icontains=search)
             | Q(num_patrimonio__icontains=search)
-            | Q(local__icontains=search)
             | Q(categoria__nome__icontains=search)
             | Q(responsavel__nome__icontains=search)
         )
@@ -86,7 +85,7 @@ def equipments_collection(request):
 def equipment_detail(request, equipment_id):
     # O prefetch_related garante que o histórico venha rápido
     equipment = get_object_or_404(
-        Equipamento.objects.select_related('categoria', 'responsavel', 'validador').prefetch_related('galeria', 'historico_transferencias'), 
+        Equipamento.objects.select_related('categoria', 'responsavel').prefetch_related('galeria', 'historico_transferencias'), 
         id=equipment_id
     )
 
@@ -316,12 +315,12 @@ def export_inventory(request):
         'Patrimônio', 
         'Nome', 
         'Categoria', 
-        'Tipo',
         'Status', 
-        'Local', 
+        'Centro de Custo',
+        'Valor de Compra',
+        'Valor Atual Contábil',
         'Departamento',
         'Responsável', 
-        'Validador',
         'Data de Aquisição',
         'Descrição',
         'Observações'
@@ -331,20 +330,20 @@ def export_inventory(request):
         # Tratamento para não quebrar caso algum campo de relacionamento esteja vazio
         categoria = eq.categoria.nome if eq.categoria else ''
         responsavel = eq.responsavel.nome if eq.responsavel else 'Sem responsável'
-        validador = eq.validador.nome if getattr(eq, 'validador', None) else ''
         data_formatada = eq.data.strftime('%d/%m/%Y') if eq.data else ''
+        centro = eq.centro_de_custo.nome if eq.centro_de_custo else 'Não Atribuído'
         
         # Preenchendo as colunas na mesma ordem do cabeçalho
         writer.writerow([
             eq.num_patrimonio or '',
             eq.nome or '',
             categoria,
-            eq.tipo or '',
             eq.get_status_display() or '',
-            eq.local or '',
+            centro,
+            str(eq.valor_compra) if eq.valor_compra else "0.00",
+            str(eq.valor_atual_contabil) if eq.valor_atual_contabil else "0.00",
             eq.departamento or '',
             responsavel,
-            validador,
             data_formatada,
             eq.descricao or '',
             eq.observacao or ''
@@ -363,6 +362,122 @@ def download_template(request):
     writer = csv.writer(response, delimiter=';')
     
     # Cabeçalho do Modelo
-    writer.writerow(['nome', 'num_patrimonio', 'categoria_id', 'status', 'local', 'tipo'])
+    writer.writerow(['nome', 'num_patrimonio', 'categoria_id', 'status'])
     
+    return response
+
+
+@require_POST
+@api_login_required
+def update_finance(request, equipment_id):
+    # Pega o equipamento no banco
+    equipment = get_object_or_404(Equipamento, id=equipment_id, excluido=False)
+    
+    # Recebe o JSON do React
+    data = request_data(request)
+    
+    # Extrai os dados do payload
+    centro_de_custo_id = data.get('centro_de_custo_id')
+    data_compra = data.get('data_compra')
+    valor_compra = data.get('valor_compra')
+    taxa_depreciacao = data.get('taxa_depreciacao_anual')
+
+    try:
+        # Atualiza o Centro de Custo
+        if centro_de_custo_id:
+            equipment.centro_de_custo_id = centro_de_custo_id
+        else:
+            equipment.centro_de_custo_id = None
+            
+        # Atualiza a Data
+        if data_compra:
+            equipment.data_compra = data_compra
+        else:
+            equipment.data_compra = None
+            
+        # Atualiza o Valor
+        if valor_compra:
+            # Tratamento básico para garantir que seja um decimal
+            equipment.valor_compra = str(valor_compra).replace(',', '.')
+        else:
+            equipment.valor_compra = None
+            
+        # Atualiza a Taxa
+        if taxa_depreciacao:
+            equipment.taxa_depreciacao_anual = str(taxa_depreciacao).replace(',', '.')
+            
+        # Salva as alterações "na marra", ignorando o Form da TI
+        equipment.save()
+        
+        return JsonResponse({'detail': 'Conciliação contábil atualizada com sucesso!'})
+        
+    except Exception as e:
+        return json_error(f'Erro ao salvar dados financeiros: {str(e)}')
+    
+@require_POST
+@api_login_required
+def bulk_update_finance(request):
+    data = request_data(request)
+    ids = data.get('ids', [])
+    centro_de_custo_id = data.get('centro_de_custo_id')
+
+    if not ids:
+        return json_error('Nenhum equipamento selecionado.')
+
+    # Faz o update massivo no banco de dados com 1 única query
+    Equipamento.objects.filter(id__in=ids, excluido=False).update(
+        centro_de_custo_id=centro_de_custo_id
+    )
+
+    return JsonResponse({'detail': f'{len(ids)} equipamentos foram atualizados e conciliados.'})
+
+@require_GET
+@api_login_required
+def export_finance_csv(request):
+    ano = request.GET.get('ano')
+    centro_custo_id = request.GET.get('centro_custo')
+    
+    # Começa pegando tudo que não está na lixeira
+    queryset = Equipamento.objects.filter(excluido=False)
+    
+    # Aplica os filtros se o usuário tiver selecionado
+    if ano:
+        queryset = queryset.filter(data_compra__year=ano)
+    if centro_custo_id:
+        queryset = queryset.filter(centro_de_custo_id=centro_custo_id)
+        
+    # Prepara a resposta para ser um download de arquivo
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': 'attachment; filename="fechamento_contabil.csv"'},
+    )
+    
+    # Esse comando força o Excel a entender os acentos do português (UTF-8 com BOM)
+    response.write(u'\ufeff'.encode('utf8'))
+    
+    # Usamos o ponto e vírgula porque o Excel no Brasil prefere assim
+    writer = csv.writer(response, delimiter=';')
+    
+    # Cabeçalho da Planilha
+    writer.writerow(['Patrimônio', 'Equipamento', 'Centro de Custo', 'Data de Aquisição', 'Valor Original (R$)', 'Taxa (%)', 'Valor Contábil Atual (R$)'])
+    
+    for equip in queryset:
+        cc_nome = f"{equip.centro_de_custo.codigo} - {equip.centro_de_custo.nome}" if equip.centro_de_custo else "Não vinculado"
+        dt_compra = equip.data_compra.strftime('%d/%m/%Y') if equip.data_compra else "Sem data"
+        
+        # Formatando os números para o padrão brasileiro (vírgula no lugar do ponto)
+        v_compra = str(equip.valor_compra).replace('.', ',') if equip.valor_compra else "0,00"
+        v_atual = str(equip.valor_atual_contabil).replace('.', ',') if getattr(equip, 'valor_atual_contabil', None) else "0,00"
+        taxa = str(getattr(equip, 'taxa_depreciacao_anual', '10.0')).replace('.', ',')
+        
+        writer.writerow([
+            equip.num_patrimonio,
+            equip.nome,
+            cc_nome,
+            dt_compra,
+            v_compra,
+            taxa,
+            v_atual
+        ])
+        
     return response

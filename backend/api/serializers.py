@@ -1,6 +1,8 @@
 from consumiveis.models import Consumivel, MovimentacaoConsumivel
 from estoque.models import Categoria, Equipamento
 from rh.models import Colaborador, Departamento
+from datetime import date
+from decimal import Decimal
 
 
 def serialize_user(user):
@@ -73,21 +75,31 @@ def serialize_equipment(equipment):
         'num_patrimonio': equipment.num_patrimonio,
         'categoria_id': equipment.categoria_id,
         'categoria': serialize_category(equipment.categoria) if equipment.categoria else None,
-        'local': equipment.local,
-        'tipo': equipment.tipo,
+        
+        # ==========================================
+        # NOVO: Injetando os campos financeiros
+        # ==========================================
+        'centro_de_custo_id': equipment.centro_de_custo_id,
+        'centro_de_custo': serialize_centro_custo(equipment.centro_de_custo),
+        'valor_compra': str(equipment.valor_compra) if getattr(equipment, 'valor_compra', None) else "0.00",
+        'data_compra': equipment.data_compra.isoformat() if getattr(equipment, 'data_compra', None) else None,
+        'taxa_depreciacao_anual': str(getattr(equipment, 'taxa_depreciacao_anual', '10.0')),
+        'valor_atual_contabil': str(getattr(equipment, 'valor_atual_contabil', '0.00')) if getattr(equipment, 'valor_atual_contabil', None) else "0.00",
+        # ==========================================
+
         'departamento': equipment.departamento,
         'descricao': equipment.descricao,
         'status': equipment.status,
         'status_label': equipment.get_status_display(),
         'responsavel_id': equipment.responsavel_id,
         'responsavel': serialize_collaborator_summary(equipment.responsavel),
-        'validador_id': equipment.validador_id,
-        'validador': serialize_collaborator_summary(equipment.validador),
         'observacao': equipment.observacao,
         'foto_url': equipment.foto.url if equipment.foto else None,
         'excluido': equipment.excluido,
         'galeria': [img.imagem.url for img in equipment.galeria.all() if img.imagem] if hasattr(equipment, 'galeria') else [],
     }
+    
+    # ... (o resto da função com o histórico continua igual) ...
     
     # NOVO: Injeta o histórico de transferências no JSON (Sem o hasattr)
     historico_bd = equipment.historico_transferencias.all().order_by('-data_transferencia')
@@ -192,13 +204,110 @@ def serialize_dashboard_payload(*, totals, low_stock, latest_equipments, latest_
     }
 
 
-def serialize_lookups_payload(*, categories, collaborators, departments):
-    return {
-        'categorias': [serialize_category(item) for item in categories],
-        'departamentos': [serialize_department(item) for item in departments], # NOVO
-        'colaboradores': [serialize_collaborator_summary(item) for item in collaborators],
-        'equipamento_status': serialize_choices(Equipamento.STATUS_CHOICES),
-        'consumivel_unidades': serialize_choices(Consumivel.UNIDADES),
-        'movimentacao_tipos': serialize_choices(MovimentacaoConsumivel.TIPOS),
-    }
+def serialize_lookups_payload(categories=None, collaborators=None, departments=None, centros_custo=None):
+    payload = {}
     
+    if categories is not None:
+        payload['categorias'] = [serialize_category(c) for c in categories]
+    if collaborators is not None:
+        payload['colaboradores'] = [serialize_collaborator_summary(c) for c in collaborators]
+    if departments is not None:
+        payload['departamentos'] = [serialize_department(d) for d in departments]
+        
+    # Os Centros de Custo que adicionamos
+    if centros_custo is not None:
+        payload['centros_custo'] = [serialize_centro_custo(c) for c in centros_custo]
+        
+    # ==========================================
+    # RESTAURANDO AS OPÇÕES FIXAS (CHOICES)
+    # ==========================================
+    # (Verifique se no seu models.py as constantes estão com esses nomes exatos, 
+    # como STATUS_CHOICES, TIPO_CHOICES, etc. Caso sejam diferentes, é só ajustar).
+    
+    if hasattr(Equipamento, 'STATUS_CHOICES'):
+        payload['equipamento_status'] = serialize_choices(Equipamento.STATUS_CHOICES)
+        
+    if hasattr(Consumivel, 'UNIDADES_CHOICES'):
+        payload['consumivel_unidades'] = serialize_choices(Consumivel.UNIDADES_CHOICES)
+        
+    if hasattr(MovimentacaoConsumivel, 'TIPO_CHOICES'):
+        payload['movimentacao_tipos'] = serialize_choices(MovimentacaoConsumivel.TIPO_CHOICES)
+        
+    return payload
+
+
+def serialize_centro_custo(centro, request=None):
+    if not centro:
+        return None
+        
+    from datetime import date
+    from decimal import Decimal
+    
+    total = Decimal('0.00')
+    ano_alvo = date.today().year
+    
+    print(f"\n--- [DEBUG] Processando Centro de Custo: {centro.nome} ---")
+    
+    # 1. Verifica se o React mandou o ano
+    if request and hasattr(request, 'GET') and request.GET.get('ano'):
+        try:
+            ano_alvo = int(request.GET.get('ano'))
+        except ValueError:
+            pass
+            
+    print(f"1. Ano Alvo do Filtro: {ano_alvo}")
+
+    try:
+        equipamentos = centro.equipamentos.filter(excluido=False)
+        print(f"2. Equipamentos vinculados encontrados no banco: {equipamentos.count()}")
+        
+        for equip in equipamentos:
+            print(f"  -> Equip: {equip.nome} | Data: {getattr(equip, 'data_compra', 'SEM DATA')} | Valor: {getattr(equip, 'valor_compra', 'SEM VALOR')}")
+            
+            if getattr(equip, 'data_compra', None) and getattr(equip, 'valor_compra', None):
+                ano_compra = None
+                
+                if isinstance(equip.data_compra, str):
+                    try:
+                        ano_compra = int(equip.data_compra[:4])
+                    except:
+                        pass
+                elif hasattr(equip.data_compra, 'year'):
+                    ano_compra = equip.data_compra.year
+                    
+                print(f"    - Ano lido do equipamento: {ano_compra}")
+                
+                if ano_compra == ano_alvo:
+                    v = equip.valor_compra
+                    try:
+                        if isinstance(v, (int, float, Decimal)):
+                            valor_decimal = Decimal(str(v))
+                        else:
+                            v_str = str(v).replace('R$', '').strip()
+                            if ',' in v_str and '.' in v_str:
+                                v_str = v_str.replace('.', '').replace(',', '.')
+                            elif ',' in v_str:
+                                v_str = v_str.replace(',', '.')
+                            valor_decimal = Decimal(v_str)
+                            
+                        total += valor_decimal
+                        print(f"    - SOMOU COM SUCESSO! Novo total parcial: {total}")
+                    except Exception as e:
+                        print(f"    - ⚠️ ERRO NA CONVERSÃO DA MOEDA: {e}")
+                else:
+                    print("    - IGNORADO: O ano de compra é diferente do ano filtrado.")
+            else:
+                print("    - IGNORADO: Equipamento não possui data de compra ou valor preenchido.")
+                
+    except Exception as e:
+        print(f"⚠️ ERRO GERAL AO BUSCAR EQUIPAMENTOS: {e}")
+
+    print(f"3. TOTAL FINAL QUE VAI PARA O REACT: {total}\n")
+
+    return {
+        'id': centro.id,
+        'codigo': centro.codigo,
+        'nome': centro.nome,
+        'orcamento_anual': str(centro.orcamento_anual) if centro.orcamento_anual else None,
+        'total_investido': str(round(total, 2))
+    }

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 export type DataTableColumn<T> = {
   key: string
-  label: string
+  label: string | ReactNode
   width?: string | number
   align?: 'left' | 'center' | 'right'
   render: (item: T) => ReactNode

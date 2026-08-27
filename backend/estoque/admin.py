@@ -7,8 +7,11 @@ admin.site.register(Categoria)
 @admin.register(Equipamento)
 class EquipamentoAdmin(admin.ModelAdmin):
     # Colunas na tabela (fica muito mais fácil bater o olho e achar o que precisa)
-    list_display = ('nome', 'num_patrimonio', 'categoria', 'status', 'responsavel')
+    list_display = ('nome', 'num_patrimonio', 'status', 'responsavel', 'centro_de_custo', 'valor_atual_contabil')
     
+    # Como o valor contábil é calculado, ele precisa ser "somente leitura" no formulário
+    readonly_fields = ('valor_atual_contabil',)
+        
     # Filtros laterais (O coração do sistema! Filtra por quebrado, em uso, categoria...)
     list_filter = ('status', 'categoria')
     
