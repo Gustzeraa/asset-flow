@@ -8,6 +8,7 @@
     "aptPackages": [
       "...",
       "libcairo2"
-    ]
+    ],
+    "startCommand": "python manage.py migrate && gunicorn setup.wsgi"
   }
 }
