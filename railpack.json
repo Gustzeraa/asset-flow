@@ -1,8 +1,10 @@
 {
-  "packages": {
-    "apt": [
-      "libcairo2-dev",
-      "pkg-config",
+  "buildAptPackages": [
+    "libcairo2-dev",
+    "pkg-config"
+  ],
+  "deploy": {
+    "aptPackages": [
       "libcairo2"
     ]
   }
