@@ -1,5 +1,5 @@
 // A URL definitiva do seu Railway
-const API_BASE_URL = 'https://asset-flow-system.vercel.app'
+const API_BASE_URL = 'https://asset-flow-production-d714.up.railway.app'
 
 // Guardamos o token na memória do Javascript
 let savedCsrfToken = ''

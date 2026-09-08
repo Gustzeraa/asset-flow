@@ -161,14 +161,15 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://asset-flow-system.vercel.app',
-    'https://asset-flow-production-17bf.up.railway.app'
+    'https://asset-flow-production-d714.up.railway.app'
 ]
 
 # 2. Libera o Django para enviar dados da API para essas URLs
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://asset-flow-system.vercel.app'
+    'https://asset-flow-system.vercel.app',
+    'https://asset-flow-production-d714.up.railway.app'
 ]
 
 # 3. Regras de cookies (Essencial para o login funcionar entre Vercel e Railway)
