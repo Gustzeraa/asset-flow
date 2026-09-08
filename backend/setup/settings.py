@@ -88,7 +88,10 @@ WSGI_APPLICATION = 'setup.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgres://root:root@127.0.0.1:5432/assetflow',
+        default=os.getenv(
+            'DATABASE_URL', 
+            'postgres://root:root@127.0.0.1:5432/assetflow'
+        ),
         conn_max_age=600,
         conn_health_checks=True,
     )
