@@ -1,4 +1,0 @@
-providers = ["python"]
-
-[phases.setup]
-aptPkgs = ["libcairo2-dev", "pkg-config"]
