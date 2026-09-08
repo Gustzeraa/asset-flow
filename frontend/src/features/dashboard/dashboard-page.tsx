@@ -22,7 +22,7 @@ export function DashboardPage() {
             ? "Leia a operacao por excecao: veja alertas, movimentacoes recentes e o estado atual."
             : "Visão executiva de custos, investimentos em ativos e depreciação patrimonial."}
           icon={<screenIcons.dashboard size={18} />}
-          title={visao === 'operacional' ? "Dashboard premium" : "Inteligência Financeira"}
+          title={visao === 'operacional' ? "Dashboard Operacional" : "Inteligência Financeira"}
         />
 
         {/* SWITCH DE VISÃO - Só aparece se for Superusuário */}

@@ -91,6 +91,7 @@ export function EquipmentsPage() {
   const AvailableIcon = sectionIcons.available
   const InUseIcon = sectionIcons.inUse
   const MaintenanceIcon = sectionIcons.maintenance
+  const ExportIcon = actionIcons.download
 
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
@@ -145,6 +146,10 @@ export function EquipmentsPage() {
   const [quickDeptOpened, setQuickDeptOpened] = useState(false)
   const [quickDeptName, setQuickDeptName] = useState('')
   const [isSavingQuickDept, setIsSavingQuickDept] = useState(false)
+
+  const [exportModalOpened, setExportModalOpened] = useState(false)
+  const [exportCategoria, setExportCategoria] = useState<string>('')
+  const [exportStatus, setExportStatus] = useState<string>('')
 
   async function handleQuickCreateCategory(event: React.FormEvent) {
     event.preventDefault()
@@ -524,9 +529,18 @@ export function EquipmentsPage() {
     }
   }
 
-  async function handleExport() {
+  async function handleModalExport() {
     try {
-      await downloadFile(`/api/equipments/export/${query ? `?${query}` : ''}`, 'exportacao_equipamentos.csv')
+      const params = new URLSearchParams()
+      if (exportCategoria) params.set('categoria', exportCategoria)
+      if (exportStatus) params.set('status', exportStatus)
+
+      const queryString = params.toString()
+      const url = `/api/equipments/export/${queryString ? `?${queryString}` : ''}`
+
+      // Usa o downloadFile para não dar o erro de autenticação!
+      await downloadFile(url, 'inventario_equipamentos.csv')
+      setExportModalOpened(false) // Fecha o modal depois de baixar
     } catch (error) {
       appFeedback.error({ title: 'Erro ao exportar', message: getApiErrorMessage(error) })
     }
@@ -538,12 +552,16 @@ export function EquipmentsPage() {
         <PageHeader
           actions={
             <Group>
-              <AppButton onClick={handleExport} leftSection={<DownloadIcon size={14} />} variant="light">
-                Exportar CSV
+              <AppButton
+                leftSection={<ExportIcon size={14} />}
+                variant="light"
+                onClick={() => setExportModalOpened(true)} // <-- AGORA ELE ABRE O MODAL
+              >
+                Exportar Equipamentos
               </AppButton>
 
               <AppButton leftSection={<UploadIcon size={14} />} onClick={() => setImportOpened(true)} variant="light">
-                Importar CSV
+                Importar Equipamentos
               </AppButton>
               <AppButton leftSection={<AddIcon size={14} />} onClick={openCreate}>
                 Novo equipamento
@@ -603,21 +621,21 @@ export function EquipmentsPage() {
             <Text fw={600} className="text-brand-700">
               {selectedIds.size} equipamento(s) selecionado(s)
             </Text>
-            
+
             <Group>
               {/* Botão de cancelar seleção (outline) */}
               <AppButton size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
                 Cancelar seleção
               </AppButton>
-              
+
               <AppButton size="sm" color="red" leftSection={<DeleteIcon size={14} />} onClick={handleBulkTrash}>
                 Enviar para lixeira
               </AppButton>
-              
+
               <AppButton size="sm" leftSection={<CategoryIcon size={14} />} onClick={() => setCategoryOpened(true)}>
                 Alterar categoria
               </AppButton>
-              
+
               <AppButton size="sm" leftSection={<TransferIcon size={14} />} onClick={openBulkTransfer}>
                 Transferir lote
               </AppButton>
@@ -992,6 +1010,44 @@ export function EquipmentsPage() {
         </form>
       </AppModal>
 
+      <AppModal onClose={() => setExportModalOpened(false)} opened={exportModalOpened} size="sm" title="Exportar equipamentos">
+        <Stack gap="md">
+          <Text c="dimmed" size="sm">
+            Escolha filtros opcionais para gerar a planilha de equipamentos.
+          </Text>
+
+          <Select
+            clearable
+            data={lookups?.categorias.map((item) => ({ value: String(item.id), label: item.nome })) ?? []}
+            label="Categoria (Opcional)"
+            onChange={(value) => setExportCategoria(value ?? '')}
+            placeholder="Todas as categorias"
+            value={exportCategoria}
+          />
+          <Select
+            clearable
+            data={[
+              { value: 'disponivel', label: 'Disponível' },
+              { value: 'em_uso', label: 'Em uso' },
+              { value: 'manutencao', label: 'Manutenção' },
+            ]}
+            label="Status (Opcional)"
+            onChange={(value) => setExportStatus(value ?? '')}
+            placeholder="Todos os status"
+            value={exportStatus}
+          />
+
+          <Group justify="flex-end" mt="md">
+            <AppButton color="gray" onClick={() => setExportModalOpened(false)} type="button" variant="subtle">
+              Cancelar
+            </AppButton>
+            <AppButton leftSection={<ExportIcon size={14} />} onClick={handleModalExport} variant="light">
+              Baixar planilha
+            </AppButton>
+          </Group>
+        </Stack>
+      </AppModal>
+
       <AppModal
         onClose={() => setViewingEquipment(null)}
         opened={!!viewingEquipment}
@@ -1093,14 +1149,14 @@ export function EquipmentsPage() {
               <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb="md">
                 Histórico de Transferências
               </Text>
-              
+
               {(viewingEquipment as any)?.historico?.length > 0 ? (
                 <Timeline active={0} bulletSize={24} lineWidth={2}>
                   {(viewingEquipment as any).historico.map((item: any) => (
-                    <Timeline.Item 
-                      key={item.id} 
+                    <Timeline.Item
+                      key={item.id}
                       title={`Transferido para: ${item.novo}`}
-                      bullet={<TransferIcon size={12} />} 
+                      bullet={<TransferIcon size={12} />}
                     >
                       <Text c="dimmed" size="sm" mt={4}>
                         De: {item.anterior}

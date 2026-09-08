@@ -21,7 +21,7 @@ import { AppModal } from '@/components/ui/app-modal'
 import { DataTable } from '@/components/ui/data-table'
 import { PageHeader } from '@/components/ui/page-header'
 import { useAsyncData } from '@/hooks/use-async-data'
-import { apiFetch, getApiErrorMessage } from '@/lib/api'
+import { apiFetch, downloadFile, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons } from '@/lib/app-icons'
 import type { Equipment } from '@/types/domain'
@@ -80,11 +80,18 @@ export function ControleContabilPage() {
   const [isSaving, setIsSaving] = useState(false)
 
   // ==========================================
-  // ESTADOS DA EXPORTAÇÃO
+  // ESTADOS DA EXPORTAÇÃO E ANOS DINÂMICOS
   // ==========================================
   const [exportModalOpened, setExportModalOpened] = useState(false)
   const [exportAno, setExportAno] = useState<string>('')
   const [exportCentroCusto, setExportCentroCusto] = useState<string>('')
+
+  // NOVO: Hook para buscar os anos disponíveis na nova API financeira
+  const { data: anosData, isLoading: carregandoAnos } = useAsyncData(
+    () => apiFetch<{ anos_disponiveis: string[] }>(`/api/finance/years/?centro_custo_id=${exportCentroCusto || ''}`),
+    [exportCentroCusto]
+  )
+  const anosDisponiveis = anosData?.anos_disponiveis ?? []
 
   const query = useMemo(() => {
     const params = new URLSearchParams()
@@ -103,6 +110,19 @@ export function ControleContabilPage() {
   )
 
   const items = useMemo(() => data?.items ?? [], [data?.items])
+
+  async function handleExport() {
+    try {
+      const params = new URLSearchParams()
+      if (exportAno) params.set('ano', exportAno)
+      if (exportCentroCusto) params.set('centro_custo', exportCentroCusto)
+
+      await downloadFile(`/api/finance/export/?${params.toString()}`, 'fechamento_contabil.csv')
+      setExportModalOpened(false)
+    } catch (error) {
+      appFeedback.error({ title: 'Erro ao exportar', message: getApiErrorMessage(error) })
+    }
+  }
 
   // Lógica de Checkboxes
   const toggleRow = (id: number) =>
@@ -132,7 +152,7 @@ export function ControleContabilPage() {
     if (!editing) return
     setIsSaving(true)
     try {
-      await apiFetch(`/api/equipments/${editing.id}/finance/`, {
+      await apiFetch(`/api/finance/equipments/${editing.id}/`, {
         method: 'POST',
         body: JSON.stringify(form),
       })
@@ -150,7 +170,7 @@ export function ControleContabilPage() {
     event.preventDefault()
     setIsBulkSaving(true)
     try {
-      await apiFetch(`/api/equipments/bulk/finance/`, {
+      await apiFetch(`/api/finance/equipments/bulk/`, {
         method: 'POST',
         body: JSON.stringify({
           ids: selectedIds,
@@ -195,11 +215,7 @@ export function ControleContabilPage() {
         {/* BOTÃO DE EXPORTAÇÃO                        */}
         {/* ========================================== */}
         <Group justify="flex-end">
-          <AppButton 
-            leftSection={<ExportIcon size={16} />} 
-            color="green" 
-            onClick={() => setExportModalOpened(true)}
-          >
+          <AppButton leftSection={<ExportIcon size={14} />} onClick={() => setExportModalOpened(true)} variant="light">
             Exportar Fechamento
           </AppButton>
         </Group>
@@ -457,41 +473,34 @@ export function ControleContabilPage() {
           </Text>
 
           <Select
-            label="Ano de Aquisição (Opcional)"
-            placeholder="Todos os anos"
-            data={['2022', '2023', '2024', '2025', '2026', '2027']}
-            value={exportAno}
-            onChange={(val) => setExportAno(val ?? '')}
-            clearable
-          />
-
-          <Select
             label="Centro de Custo (Opcional)"
             placeholder="Todos os centros"
             data={lookups?.centros_custo?.map((c) => ({ value: String(c.id), label: `${c.codigo} - ${c.nome}` })) ?? []}
             value={exportCentroCusto}
-            onChange={(val) => setExportCentroCusto(val ?? '')}
+            onChange={(val) => {
+              setExportCentroCusto(val ?? '')
+              setExportAno('') // Limpa o ano se mudar o centro de custo
+            }}
             clearable
             searchable
+          />
+
+          {/* NOVO SELECT DE ANO DINÂMICO */}
+          <Select
+            label="Ano de Aquisição (Opcional)"
+            placeholder={carregandoAnos ? "Carregando..." : (anosDisponiveis.length === 0 ? "Nenhum ano com dados" : "Todos os anos")}
+            data={anosDisponiveis}
+            value={exportAno}
+            onChange={(val) => setExportAno(val ?? '')}
+            disabled={carregandoAnos || anosDisponiveis.length === 0}
+            clearable
           />
 
           <Group justify="flex-end" mt="md">
             <AppButton color="gray" onClick={() => setExportModalOpened(false)} variant="subtle">
               Cancelar
             </AppButton>
-            <AppButton 
-              color="green"
-              onClick={() => {
-                // Monta a URL com os filtros e abre numa nova aba para baixar
-                const params = new URLSearchParams()
-                if (exportAno) params.set('ano', exportAno)
-                if (exportCentroCusto) params.set('centro_custo', exportCentroCusto)
-                
-                // Abre a janela de download através da URL da API
-                window.open(`${import.meta.env.VITE_API_URL || ''}/api/equipments/finance/export/?${params.toString()}`, '_blank')
-                setExportModalOpened(false)
-              }}
-            >
+            <AppButton disabled={carregandoAnos} leftSection={<ExportIcon size={14} />} onClick={handleExport} variant="light">
               Baixar Planilha
             </AppButton>
           </Group>

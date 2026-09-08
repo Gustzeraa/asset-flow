@@ -98,7 +98,7 @@ export function OperationalPanel() {
         className="items-start gap-3 rounded-[24px] border border-white/80 bg-white/72 px-4 py-3.5 shadow-[0_14px_36px_rgba(15,23,42,0.04)] backdrop-blur-sm md:px-4.5"
         description="Leia a operacao por excecao: veja alertas, movimentacoes recentes e o estado atual do inventario sem excesso visual."
         icon={<DashboardIcon size={18} />}
-        title="Dashboard premium"
+        title="Dashboard Operacional"
       />
 
       <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="xs">

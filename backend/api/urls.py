@@ -11,6 +11,7 @@ from .views import equipments
 from .views import lookups
 from .views import trash
 from .views import cost_centers
+from .views import finance
 
 urlpatterns = [
     # ==========================================
@@ -40,7 +41,7 @@ urlpatterns = [
     path('departments/', departments.departments_collection, name='api_departments'),
     path('departments/<int:department_id>/', departments.department_detail, name='api_department_detail'),
 
-    # ==========================================
+   # ==========================================
     # Rotas de Equipamentos (Ativos e Inventário)
     # ==========================================
     path('equipments/', equipments.equipments_collection, name='api_equipments'),
@@ -50,14 +51,18 @@ urlpatterns = [
     path('equipments/bulk/transfer/', equipments.bulk_transfer, name='api_equipments_bulk_transfer'),
     path('equipments/bulk/category/', equipments.bulk_change_category, name='api_equipments_bulk_category'),
     path('equipments/bulk/trash/', equipments.bulk_trash, name='api_equipments_bulk_trash'),
-    path('equipments/bulk/finance/', equipments.bulk_update_finance, name='api_equipments_bulk_finance'),
-    path('equipments/finance/export/', equipments.export_finance_csv, name='api_equipments_finance_export'),
     path('equipments/<int:equipment_id>/', equipments.equipment_detail, name='api_equipment_detail'),
     path('equipments/<int:equipment_id>/transfer/', equipments.transfer_equipment, name='api_equipment_transfer'),
     path('equipments/<int:equipment_id>/trash/', equipments.trash_equipment, name='api_equipment_trash'),
-    
-    # -> Nova Rota de Controle Contábil / Financeiro (Atualização exclusiva de valores)
-    path('equipments/<int:equipment_id>/finance/', equipments.update_finance, name='api_equipment_finance'),
+    # NOTA: As rotas de finance foram removidas daqui para não misturar responsabilidades.
+
+    # ==========================================
+    # Rotas do Módulo Financeiro / Fechamento
+    # ==========================================
+    path('finance/years/', finance.available_years, name='api_finance_years'), # A nova rota dos anos!
+    path('finance/export/', finance.export_finance_csv, name='api_finance_export'),
+    path('finance/equipments/bulk/', finance.bulk_update_finance, name='api_finance_bulk_update'),
+    path('finance/equipments/<int:equipment_id>/', finance.update_finance, name='api_finance_equipment_update'),
 
     # ==========================================
     # Rotas de Colaboradores (Módulo RH)
