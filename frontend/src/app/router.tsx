@@ -1,5 +1,5 @@
 import { Center } from '@mantine/core'
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom'
 
 import { useAuth } from './auth-context'
@@ -29,13 +29,12 @@ function getNextPath(search: string) {
 }
 
 function isSpaPath(pathname: string) {
-  // ADICIONAMOS AS DUAS ROTAS NOVAS AQUI NA LISTA
   return [
-    '/', '/dashboard', '/equipamentos', '/categorias', 
-    '/colaboradores', '/consumiveis', '/historico', 
+    '/', '/dashboard', '/equipamentos', '/categorias',
+    '/colaboradores', '/consumiveis', '/historico',
     '/lixeira', '/login', '/usuarios', '/departamentos',
     '/rh/contracheques/upload', '/meus-contracheques',
-    '/centros-custo', '/controle-contabil' // <-- AQUI!
+    '/centros-custo', '/controle-contabil' 
   ].includes(pathname)
 }
 
@@ -91,6 +90,25 @@ function LoginGuard() {
   return <LoginPage />
 }
 
+function AdminGuard({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <Center className="min-h-screen">
+        <LoadingPanel label="Verificando permissões..." />
+      </Center>
+    )
+  }
+
+  // Substitua 'is_superuser' pela propriedade exata que seu backend retorna
+  if (!user?.is_superuser) {
+    return <Navigate replace to="/dashboard" />
+  }
+
+  return children
+}
+
 export function AppRouter() {
   return (
     <Router>
@@ -108,9 +126,12 @@ export function AppRouter() {
           <Route element={<ConsumablesPage />} path="/consumiveis" />
           <Route element={<MovementsPage />} path="/historico" />
           <Route element={<TrashPage />} path="/lixeira" />
-          <Route element={<UsersPage />} path="/usuarios" />
-          
-          
+          <Route path="/usuarios" element={
+            <AdminGuard>
+              <UsersPage />
+            </AdminGuard>
+          } />
+
         </Route>
         <Route element={<Navigate replace to="/dashboard" />} path="*" />
       </Routes>
