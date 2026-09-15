@@ -1,5 +1,5 @@
 // A URL definitiva do seu Railway
-const API_BASE_URL = 'https://asset-flow-production-d714.up.railway.app'
+const API_BASE_URL = ''
 
 // Guardamos o token na memória do Javascript
 let savedCsrfToken = ''
@@ -126,10 +126,9 @@ export async function downloadFile(path: string, filename: string) {
 // Transforma caminhos relativos em URLs absolutas do Railway
 export function getMediaUrl(path: string | null | undefined) {
   if (!path) return '';
-  // Se já for um link completo, retorna ele mesmo
   if (path.startsWith('http')) return path;
   
-  // Substitua pela SUA URL exata do Railway
-  const backendUrl = 'http://127.0.0.1:5173'; 
+  // Coloque o link do Railway direto aqui para as mídias funcionarem
+  const backendUrl = 'https://asset-flow-production-d714.up.railway.app'; 
   return `${backendUrl}${path}`;
 }
