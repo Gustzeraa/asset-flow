@@ -149,7 +149,7 @@ export function ConsumablesPage() {
     setEditing(null)
     setForm({
       ...initialConsumableForm,
-      unidade_medida: lookups?.consumivel_unidades[0]?.value ?? 'un',
+      unidade_medida: lookups?.consumivel_unidades?.[0]?.value ?? 'un',
     })
     setOpened(true)
   }
@@ -170,7 +170,7 @@ export function ConsumablesPage() {
     setMovementTarget(item)
     setMovementForm({
       ...initialMovementForm,
-      tipo: lookups?.movimentacao_tipos[1]?.value ?? 'saida',
+      tipo: lookups?.movimentacao_tipos?.[1]?.value ?? 'saida',
     })
     setMovementOpened(true)
   }

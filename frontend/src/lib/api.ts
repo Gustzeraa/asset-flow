@@ -70,7 +70,7 @@ export async function apiFetch<T>(path: string, init: FetchInit = {}) {
     const message =
       typeof payload === 'object' && payload !== null && 'detail' in payload
         ? String(payload.detail)
-        : 'Nao foi possivel concluir a requisicao.'
+        : 'Não foi possivel concluir a requisição.'
 
     throw new ApiError(message, response.status, payload)
   }
