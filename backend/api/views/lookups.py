@@ -3,7 +3,8 @@ from django.views.decorators.http import require_GET
 
 from api.serializers import serialize_lookups_payload
 from api.utils import api_login_required
-from estoque.models import Categoria, Consumivel  # <-- NOVO: Importe o Consumivel
+from estoque.models import Categoria
+from consumiveis.models import Consumivel  # <-- Importação corrigida
 from rh.models import Colaborador, Departamento
 from patrimonio.models import CentroDeCusto
 
