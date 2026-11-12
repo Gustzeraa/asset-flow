@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react'
 
 import {
   ActionIcon,
+  Badge,
   Group,
+  Progress,
+  Select,
   Stack,
+  Switch,
   Text,
   TextInput,
-  Select,
-  Progress,
-  Tooltip
+  Tooltip,
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 
@@ -23,12 +25,14 @@ import { useAsyncData } from '@/hooks/use-async-data'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons } from '@/lib/app-icons'
+import { CentroCustoImportModal } from './centrocusto-import-page'
 import type { CentroCusto } from '@/types/domain'
 
 type CentroCustoFormState = {
   codigo: string
   nome: string
   orcamento_anual: string
+  ativo: boolean
 }
 
 function createInitialForm(): CentroCustoFormState {
@@ -36,6 +40,7 @@ function createInitialForm(): CentroCustoFormState {
     codigo: '',
     nome: '',
     orcamento_anual: '',
+    ativo: true,
   }
 }
 
@@ -49,7 +54,7 @@ export function CentrosCustoPage() {
   const FinanceIcon = screenIcons.categories
 
   // ==========================================
-  // REGRA DE NEGÓCIO: HISTÓRICO DE ANOS (SEM FUTURO)
+  // EXERCÍCIO (ANO) SELECIONADO
   // ==========================================
   const anoAtual = new Date().getFullYear()
   const [anoSelecionado, setAnoSelecionado] = useState<string>(String(anoAtual))
@@ -65,24 +70,19 @@ export function CentrosCustoPage() {
     [query]
   )
 
-  // Cria um array com os últimos 5 anos (Ex: se estamos em 2026, gera: 2026, 2025, 2024, 2023, 2022)
+  // Anos vêm dos exercícios fiscais cadastrados no backend
   const anosDisponiveis = useMemo(() => {
     if (data && Array.isArray(data.anos_disponiveis)) {
       return data.anos_disponiveis
     }
-    // Fallback de segurança se os dados ainda estiverem carregando
+    // Fallback enquanto os dados carregam
     return [String(anoAtual)]
   }, [data, anoAtual])
 
-  // Busca os dados da API
+  const exercicioFechado = Boolean(data?.exercicio_fechado)
 
-
-  // ==========================================
-  // CORREÇÃO: LEITURA DO PADRÃO DJANGO (results)
-  // ==========================================
   const items = useMemo<CentroCusto[]>(() => {
     if (!data) return []
-    // Se o Django mandou paginado, os dados reais estão dentro de "results"
     if ('results' in data) return data.results
     if ('items' in data) return data.items
     if (Array.isArray(data)) return data
@@ -96,6 +96,7 @@ export function CentrosCustoPage() {
   const [editing, setEditing] = useState<CentroCusto | null>(null)
   const [form, setForm] = useState<CentroCustoFormState>(createInitialForm())
   const [isSaving, setIsSaving] = useState(false)
+  const [importOpened, setImportOpened] = useState(false)
 
   function updateForm<Key extends keyof CentroCustoFormState>(key: Key, value: CentroCustoFormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -113,6 +114,7 @@ export function CentrosCustoPage() {
       codigo: item.codigo,
       nome: item.nome,
       orcamento_anual: item.orcamento_anual ?? '',
+      ativo: item.ativo,
     })
     setOpened(true)
   }
@@ -125,6 +127,8 @@ export function CentrosCustoPage() {
       codigo: form.codigo,
       nome: form.nome,
       orcamento_anual: form.orcamento_anual || null,
+      ativo: form.ativo,
+      ano: Number(anoSelecionado), // o orçamento é gravado no exercício selecionado
     }
 
     try {
@@ -159,7 +163,12 @@ export function CentrosCustoPage() {
     modals.openConfirmModal({
       centered: true,
       title: 'Excluir Centro de Custo',
-      children: <Text size="sm">Deseja excluir "{item.nome}"? Equipamentos vinculados perderão essa referência financeira.</Text>,
+      children: (
+        <Text size="sm">
+          Deseja excluir "{item.nome}"? Só é possível excluir centros de custo sem equipamentos ou orçamentos
+          vinculados. Se ele já tiver histórico, desative-o pela edição.
+        </Text>
+      ),
       labels: { confirm: 'Excluir', cancel: 'Cancelar' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
@@ -169,14 +178,14 @@ export function CentrosCustoPage() {
           await reload()
           await refreshLookups()
         } catch (error) {
-          appFeedback.error({ title: 'Falha ao excluir', message: getApiErrorMessage(error) })
+          appFeedback.error({ title: 'Não foi possível excluir', message: getApiErrorMessage(error) })
         }
       },
     })
   }
 
   const formatarDinheiro = (valor: string | null | number) => {
-    if (!valor) return "-"
+    if (!valor) return '-'
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor))
   }
 
@@ -194,6 +203,9 @@ export function CentrosCustoPage() {
                 w={120}
                 allowDeselect={false}
               />
+              <AppButton variant="light" onClick={() => setImportOpened(true)}>
+                Importar CC
+              </AppButton>
               <AppButton leftSection={<AddIcon size={14} />} onClick={openCreate}>
                 Novo centro de custo
               </AppButton>
@@ -203,6 +215,12 @@ export function CentrosCustoPage() {
           icon={<FinanceIcon size={18} />}
           title="Centros de Custo"
         />
+
+        {exercicioFechado && (
+          <Text size="sm" c="dimmed">
+            O exercício de {anoSelecionado} está fechado. Os orçamentos desse ano não podem ser alterados.
+          </Text>
+        )}
 
         <AppCard>
           {isLoading ? (
@@ -219,7 +237,16 @@ export function CentrosCustoPage() {
                 {
                   key: 'nome',
                   label: 'Nome do Setor / Centro de Custo',
-                  render: (item) => <Text fw={600}>{item.nome}</Text>,
+                  render: (item) => (
+                    <Group gap="xs">
+                      <Text fw={600}>{item.nome}</Text>
+                      {!item.ativo && (
+                        <Badge color="gray" variant="light" size="sm">
+                          Inativo
+                        </Badge>
+                      )}
+                    </Group>
+                  ),
                 },
                 {
                   key: 'orcamento',
@@ -252,7 +279,7 @@ export function CentrosCustoPage() {
                             </Text>
                           </Stack>
                           <Stack gap={0} align="flex-end">
-                            <Text size="xs" c="dimmed" fw={600}>Orçamento Anual</Text>
+                            <Text size="xs" c="dimmed" fw={600}>Orçamento {anoSelecionado}</Text>
                             <Text size="sm" fw={500}>
                               {formatarDinheiro(orcamento)}
                             </Text>
@@ -301,7 +328,12 @@ export function CentrosCustoPage() {
         </AppCard>
       </Stack>
 
-      <AppModal onClose={() => setOpened(false)} opened={opened} size="md" title={editing ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}>
+      <AppModal
+        onClose={() => setOpened(false)}
+        opened={opened}
+        size="md"
+        title={editing ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}
+      >
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
             <TextInput
@@ -323,14 +355,28 @@ export function CentrosCustoPage() {
             />
 
             <TextInput
-              label="Orçamento Anual (Opcional)"
-              description="Limite de gastos previsto para este setor no ano."
+              label={`Orçamento Anual de ${anoSelecionado} (Opcional)`}
+              description={
+                exercicioFechado
+                  ? `O exercício de ${anoSelecionado} está fechado.`
+                  : 'Limite de gastos previsto para este setor no ano selecionado.'
+              }
               type="number"
               step="0.01"
               placeholder="0.00"
+              disabled={exercicioFechado}
               value={form.orcamento_anual}
               onChange={(event) => updateForm('orcamento_anual', event.currentTarget.value)}
             />
+
+            {editing && (
+              <Switch
+                label="Ativo"
+                description="Inativos não aparecem para novos cadastros, mas continuam nos anos em que tiveram orçamento ou gasto."
+                checked={form.ativo}
+                onChange={(event) => updateForm('ativo', event.currentTarget.checked)}
+              />
+            )}
 
             <Group justify="flex-end" mt="md">
               <AppButton color="gray" motionDisabled onClick={() => setOpened(false)} type="button" variant="subtle">
@@ -343,6 +389,16 @@ export function CentrosCustoPage() {
           </Stack>
         </form>
       </AppModal>
+
+      <CentroCustoImportModal
+        opened={importOpened}
+        ano={anoSelecionado}
+        onClose={() => setImportOpened(false)}
+        onImported={async () => {
+          await reload()
+          await refreshLookups()
+        }}
+      />
     </>
   )
 }

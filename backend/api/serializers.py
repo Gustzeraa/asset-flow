@@ -236,78 +236,29 @@ def serialize_lookups_payload(categories=None, collaborators=None, departments=N
     return payload
 
 
-def serialize_centro_custo(centro, request=None):
+def serialize_centro_custo(centro, request=None, contexto=None):
+    """
+    Sem contexto: só os dados do cadastro (seguro para usar em listas de equipamentos etc.).
+    Com contexto (de patrimonio.services.montar_contexto_financeiro): inclui orçamento e gasto do ano.
+    """
     if not centro:
         return None
-        
-    from datetime import date
-    from decimal import Decimal
-    
-    total = Decimal('0.00')
-    ano_alvo = date.today().year
-    
-    print(f"\n--- [DEBUG] Processando Centro de Custo: {centro.nome} ---")
-    
-    # 1. Verifica se o React mandou o ano
-    if request and hasattr(request, 'GET') and request.GET.get('ano'):
-        try:
-            ano_alvo = int(request.GET.get('ano'))
-        except ValueError:
-            pass
-            
-    print(f"1. Ano Alvo do Filtro: {ano_alvo}")
 
-    try:
-        equipamentos = centro.equipamentos.filter(excluido=False)
-        print(f"2. Equipamentos vinculados encontrados no banco: {equipamentos.count()}")
-        
-        for equip in equipamentos:
-            print(f"  -> Equip: {equip.nome} | Data: {getattr(equip, 'data_compra', 'SEM DATA')} | Valor: {getattr(equip, 'valor_compra', 'SEM VALOR')}")
-            
-            if getattr(equip, 'data_compra', None) and getattr(equip, 'valor_compra', None):
-                ano_compra = None
-                
-                if isinstance(equip.data_compra, str):
-                    try:
-                        ano_compra = int(equip.data_compra[:4])
-                    except:
-                        pass
-                elif hasattr(equip.data_compra, 'year'):
-                    ano_compra = equip.data_compra.year
-                    
-                print(f"    - Ano lido do equipamento: {ano_compra}")
-                
-                if ano_compra == ano_alvo:
-                    v = equip.valor_compra
-                    try:
-                        if isinstance(v, (int, float, Decimal)):
-                            valor_decimal = Decimal(str(v))
-                        else:
-                            v_str = str(v).replace('R$', '').strip()
-                            if ',' in v_str and '.' in v_str:
-                                v_str = v_str.replace('.', '').replace(',', '.')
-                            elif ',' in v_str:
-                                v_str = v_str.replace(',', '.')
-                            valor_decimal = Decimal(v_str)
-                            
-                        total += valor_decimal
-                        print(f"    - SOMOU COM SUCESSO! Novo total parcial: {total}")
-                    except Exception as e:
-                        print(f"    - ⚠️ ERRO NA CONVERSÃO DA MOEDA: {e}")
-                else:
-                    print("    - IGNORADO: O ano de compra é diferente do ano filtrado.")
-            else:
-                print("    - IGNORADO: Equipamento não possui data de compra ou valor preenchido.")
-                
-    except Exception as e:
-        print(f"⚠️ ERRO GERAL AO BUSCAR EQUIPAMENTOS: {e}")
-
-    print(f"3. TOTAL FINAL QUE VAI PARA O REACT: {total}\n")
-
-    return {
+    dados = {
         'id': centro.id,
         'codigo': centro.codigo,
         'nome': centro.nome,
-        'orcamento_anual': str(centro.orcamento_anual) if centro.orcamento_anual else None,
-        'total_investido': str(round(total, 2))
+        'ativo': centro.ativo,
     }
+
+    if contexto is not None:
+        orcamento = contexto['orcamentos'].get(centro.id)
+        gasto = contexto['gastos'].get(centro.id) or 0
+        dados.update({
+            'ano': contexto['ano'],
+            'exercicio_fechado': contexto['fechado'],
+            'orcamento_anual': str(orcamento) if orcamento is not None else None,
+            'total_investido': str(round(gasto, 2)),
+        })
+
+    return dados

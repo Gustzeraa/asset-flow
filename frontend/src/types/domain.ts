@@ -33,8 +33,11 @@ export type CentroCusto = {
   id: number
   codigo: string
   nome: string
+  ativo: boolean
+  ano?: number
+  exercicio_fechado?: boolean
   orcamento_anual: string | null
-  total_investido?: number | string | null
+  total_investido: string
 }
 
 export type CollaboratorSummary = {

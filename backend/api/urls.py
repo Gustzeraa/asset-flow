@@ -12,6 +12,8 @@ from .views import lookups
 from .views import trash
 from .views import cost_centers
 from .views import finance
+from .views import cost_centers
+from .views import cost_centers_import
 
 urlpatterns = [
     # ==========================================
@@ -103,6 +105,8 @@ urlpatterns = [
     # Rotas de Centro de Custo (Módulo Financeiro)
     # ==========================================
     path('cost-centers/', cost_centers.collection, name='cost_centers_collection'),
+    path('cost-centers/import/', cost_centers_import.importar_centros_custo, name='api_cost_centers_import'),
+    path('cost-centers/import/template/', cost_centers_import.modelo_importacao_centros_custo, name='api_cost_centers_import_template'),
     path('cost-centers/<int:centro_id>/', cost_centers.detail, name='cost_center_detail'),
     path('cost-centers/<int:centro_id>/trash/', cost_centers.trash, name='cost_center_trash'),
 ]
