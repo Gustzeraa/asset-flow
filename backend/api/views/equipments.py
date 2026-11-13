@@ -9,23 +9,41 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from api.serializers import serialize_equipment
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json, request_data
-from estoque.forms import EquipamentoForm
-from estoque.models import Categoria, Equipamento, EquipamentoImagem, HistoricoTransferencia
+from patrimonio.forms import EquipamentoForm
+from patrimonio.models import Categoria, Equipamento, EquipamentoImagem, HistoricoTransferencia
 from rh.models import Colaborador
 import csv
 from django.http import HttpResponse
+from api.planilhas import ler_linhas, mapear_colunas, texto
+
+ALIASES_EQUIPAMENTOS = {
+    'nome': 'nome', 'item': 'nome', 'equipamento': 'nome',
+    'patrimonio': 'patrimonio', 'num_patrimonio': 'patrimonio', 'numero_do_patrimonio': 'patrimonio',
+    'categoria': 'categoria',
+    'status': 'status',
+}
+
+STATUS_MAP = {
+    'em uso': 'em_uso', 'em_uso': 'em_uso', 'uso': 'em_uso',
+    'estoque': 'disponivel', 'em estoque': 'disponivel',
+    'disponivel': 'disponivel', 'disponível': 'disponivel',
+    'descartado': 'descarte', 'descarte': 'descarte',
+    'manutenção': 'manutencao', 'manutencao': 'manutencao',
+}
 
 
 def _filtered_equipments(params):
     search = params.get('q') or params.get('search')
     ordering = params.get('ordenar') or params.get('ordering')
     category_id = params.get('categoria') or params.get('category')
+    centro_custo = params.get('centro_custo') or params.get('centro_de_custo')
     start_date = params.get('data_inicio') or params.get('start_date')
     end_date = params.get('data_fim') or params.get('end_date')
+    compra_inicial = params.get('data_compra_inicial')
+    compra_final = params.get('data_compra_final')
 
-    # NOVO: Adicionado .prefetch_related('galeria') para otimizar a busca das fotos no banco
     equipments = Equipamento.objects.filter(excluido=False).select_related(
-        'categoria', 'responsavel'
+        'categoria', 'responsavel', 'centro_de_custo'
     ).prefetch_related('galeria', 'historico_transferencias')
 
     if search:
@@ -39,14 +57,29 @@ def _filtered_equipments(params):
     if category_id:
         equipments = equipments.filter(categoria_id=category_id)
 
+    if centro_custo == 'pendente':
+        equipments = equipments.filter(centro_de_custo__isnull=True)
+    elif centro_custo:
+        equipments = equipments.filter(centro_de_custo_id=centro_custo)
+
+    # Data de registro (tela de equipamentos)
     if start_date:
         equipments = equipments.filter(data__gte=start_date)
-
     if end_date:
         equipments = equipments.filter(data__lte=end_date)
 
-    if ordering in {'data', '-data', 'nome', '-nome', 'status', '-status'}:
-        equipments = equipments.order_by(ordering)
+    # Data de compra (controle contábil)
+    if compra_inicial:
+        equipments = equipments.filter(data_compra__gte=compra_inicial)
+    if compra_final:
+        equipments = equipments.filter(data_compra__lte=compra_final)
+
+    ordenacoes = {
+        'data', '-data', 'nome', '-nome', 'status', '-status',
+        'valor_compra', '-valor_compra', 'data_compra', '-data_compra',
+    }
+    if ordering in ordenacoes:
+        equipments = equipments.order_by(ordering, '-id')
     else:
         equipments = equipments.order_by('-id')
 
@@ -103,7 +136,7 @@ def equipment_detail(request, equipment_id):
     
     # 2. O GATILHO: Se o responsável mudou durante a edição, cria o histórico na mesma hora!
     if responsavel_antigo != equipment.responsavel:
-        from estoque.models import HistoricoTransferencia # Import local para garantir que funciona
+        from patrimonio.models import HistoricoTransferencia # Import local para garantir que funciona
         HistoricoTransferencia.objects.create(
             equipamento=equipment,
             responsavel_anterior=responsavel_antigo,
@@ -232,68 +265,54 @@ def bulk_trash(request):
 @api_login_required
 def import_inventory(request):
     uploaded = request.FILES.get('file') or request.FILES.get('arquivo_csv')
-    if not uploaded or not uploaded.name.endswith('.csv'):
-        return json_error('Envie um arquivo CSV valido.')
+    if not uploaded or not uploaded.name.lower().endswith(('.csv', '.xlsx')):
+        return json_error('Envie um arquivo .csv ou .xlsx.')
 
     try:
-        binary_content = uploaded.read()
-        try:
-            decoded_lines = binary_content.decode('utf-8-sig').splitlines()
-        except UnicodeDecodeError:
-            decoded_lines = binary_content.decode('iso-8859-1').splitlines()
-
-        reader = csv.DictReader(decoded_lines, delimiter=';')
-        status_map = {
-            'em uso': 'em_uso',
-            'em_uso': 'em_uso',
-            'uso': 'em_uso',
-            'estoque': 'disponivel',
-            'em estoque': 'disponivel',
-            'disponivel': 'disponivel',
-            'disponível': 'disponivel',
-            'descartado': 'descarte',
-            'manutenção': 'manutencao',
-            'manutencao': 'manutencao',
-        }
-
-        successes = 0
-        errors = []
-
-        for index, row in enumerate(reader, start=1):
-            name = (row.get('Nome') or '').strip()
-            patrimony = (row.get('Patrimonio') or row.get('Patrimônio') or '').strip()
-            category_name = (row.get('Categoria') or '').strip()
-            status_input = (row.get('Status') or '').strip().lower()
-
-            if not name or not patrimony or not category_name:
-                errors.append(f'Linha {index}: faltam dados obrigatorios.')
-                continue
-
-            category, _ = Categoria.objects.get_or_create(nome=category_name)
-
-            try:
-                Equipamento.objects.create(
-                    nome=name,
-                    num_patrimonio=patrimony,
-                    categoria=category,
-                    status=status_map.get(status_input, 'disponivel'),
-                    data=datetime.now().date(),
-                )
-                successes += 1
-            except IntegrityError:
-                errors.append(f'Linha {index}: patrimonio "{patrimony}" ja cadastrado.')
-            except Exception:
-                errors.append(f'Linha {index}: erro ao salvar o equipamento.')
-
-        return JsonResponse(
-            {
-                'detail': 'Importacao concluida.',
-                'successes': successes,
-                'errors': errors,
-            }
-        )
+        linhas = ler_linhas(uploaded)  # aceita ; ou , e também .xlsx
     except Exception:
-        return json_error('Erro critico ao ler o arquivo CSV.', status=500)
+        return json_error('Não foi possível ler o arquivo.')
+
+    if len(linhas) < 2:
+        return json_error('A planilha não tem linhas para importar.')
+
+    mapa = mapear_colunas(linhas[0], ALIASES_EQUIPAMENTOS)  # ignora maiúsculas e acentos
+    faltando = {'nome', 'patrimonio', 'categoria'} - set(mapa.values())
+    if faltando:
+        return json_error(f'Coluna(s) não encontrada(s): {", ".join(sorted(faltando))}. Use a planilha modelo.')
+
+    successes = 0
+    errors = []
+
+    for index, linha in enumerate(linhas[1:], start=2):  # linha 1 é o cabeçalho
+        dados = {campo: (texto(linha[i]) if i < len(linha) else '') for i, campo in mapa.items()}
+        name = dados.get('nome', '')
+        patrimony = dados.get('patrimonio', '')
+        category_name = dados.get('categoria', '')
+        status_input = dados.get('status', '').lower()
+
+        faltam = [rotulo for rotulo, valor in (('nome', name), ('patrimônio', patrimony), ('categoria', category_name)) if not valor]
+        if faltam:
+            errors.append(f'Linha {index}: falta {", ".join(faltam)}.')
+            continue
+
+        category, _ = Categoria.objects.get_or_create(nome=category_name)
+
+        try:
+            Equipamento.objects.create(
+                nome=name,
+                num_patrimonio=patrimony,
+                categoria=category,
+                status=STATUS_MAP.get(status_input, 'disponivel'),
+                data=datetime.now().date(),
+            )
+            successes += 1
+        except IntegrityError:
+            errors.append(f'Linha {index}: patrimônio "{patrimony}" já cadastrado.')
+        except Exception:
+            errors.append(f'Linha {index}: erro ao salvar o equipamento.')
+
+    return JsonResponse({'detail': 'Importação concluída.', 'successes': successes, 'errors': errors})
 
 
 @require_GET
@@ -360,13 +379,9 @@ def export_inventory(request):
 def download_template(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="modelo_importacao_equipamentos.csv"'
-    
     response.write('\ufeff'.encode('utf8'))
     writer = csv.writer(response, delimiter=';')
-    
-    # Cabeçalho do Modelo
-    writer.writerow(['nome', 'num_patrimonio', 'categoria_id', 'status'])
-    
+    writer.writerow(['Nome', 'Patrimonio', 'Categoria', 'Status'])
+    writer.writerow(['Notebook Dell Latitude', '001', 'Notebooks', 'Em estoque'])
     return response
-
 

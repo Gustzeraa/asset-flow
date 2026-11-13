@@ -30,6 +30,7 @@ import { apiFetch, getApiErrorMessage, downloadFile, getMediaUrl } from '@/lib/a
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Collaborator } from '@/types/domain'
+import { ColaboradorImportModal } from './colaborador-import-modal'
 
 type CollaboratorsResponse = {
   items: Collaborator[]
@@ -103,6 +104,7 @@ export function CollaboratorsPage() {
   const [quickDeptOpened, setQuickDeptOpened] = useState(false)
   const [quickDeptName, setQuickDeptName] = useState('')
   const [isSavingQuickDept, setIsSavingQuickDept] = useState(false)
+  const [importOpened, setImportOpened] = useState(false)
 
   async function handleQuickCreateDepartment(event: React.FormEvent) {
     event.preventDefault()
@@ -389,6 +391,9 @@ export function CollaboratorsPage() {
                 value={search}
                 w={248}
               />
+              <AppButton variant="light" onClick={() => setImportOpened(true)}>
+                Importar colaboradores
+              </AppButton>
               <AppButton leftSection={<AddIcon size={14} />} onClick={openCreate}>
                 Novo colaborador
               </AppButton>
@@ -482,7 +487,7 @@ export function CollaboratorsPage() {
                 render: (item) => (
                   // O justify="center" garante que os ícones que caírem para a segunda linha fiquem no meio
                   <Group gap="xs" justify="center">
-                    
+
                     {/* Visual ajustado: variant="light" e radius="xl" */}
                     <ActionIcon color="blue" onClick={() => setViewingCollaborator(item)} radius="xl" variant="light" title="Visualizar detalhes e ativos">
                       <ViewIcon size={15} />
@@ -514,7 +519,7 @@ export function CollaboratorsPage() {
                     <ActionIcon color="red" onClick={() => handleTrash(item)} radius="xl" variant="light" title="Excluir">
                       <DeleteIcon size={15} />
                     </ActionIcon>
-                    
+
                   </Group>
                 ),
               },
@@ -789,6 +794,14 @@ export function CollaboratorsPage() {
           </Stack>
         )}
       </AppModal>
+      <ColaboradorImportModal
+        opened={importOpened}
+        onClose={() => setImportOpened(false)}
+        onImported={async () => {
+          await reload()
+          await refreshLookups() // departamentos novos aparecem nos selects
+        }}
+      />
     </>
   )
 }

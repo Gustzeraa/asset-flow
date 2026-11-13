@@ -8,9 +8,9 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from api.serializers import serialize_centro_custo
 from api.utils import api_login_required, form_errors, json_error, request_data
-from patrimonio.forms import CentroDeCustoForm
-from patrimonio.models import CentroDeCusto, ExercicioFiscal
-from patrimonio.services import (
+from financeiro.forms import CentroDeCustoForm
+from financeiro.models import CentroDeCusto, ExercicioFiscal
+from financeiro.services import (
     ExercicioFechadoError,
     ano_do_request,
     ano_do_valor,
@@ -101,13 +101,34 @@ def detail(request, centro_id):
 def trash(request, centro_id):
     centro = get_object_or_404(CentroDeCusto, id=centro_id)
 
-    tem_historico = centro.equipamentos.exists() or centro.orcamentos.exists()
-    if tem_historico:
+    ativos = centro.equipamentos.filter(excluido=False).count()
+    na_lixeira = centro.equipamentos.filter(excluido=True).count()
+    if ativos or na_lixeira:
+        partes = []
+        if ativos:
+            partes.append(f'{ativos} equipamento(s)')
+        if na_lixeira:
+            partes.append(f'{na_lixeira} equipamento(s) na lixeira')
         return json_error(
-            'Este centro de custo tem equipamentos ou orçamentos vinculados e não pode ser excluído. '
+            f'Não é possível excluir: o centro de custo tem {" e ".join(partes)} vinculado(s). '
+            'Mova esses equipamentos para outro centro ou desative este.'
+        )
+
+    anos_fechados = list(
+        centro.orcamentos.filter(exercicio__fechado=True)
+        .values_list('exercicio__ano', flat=True)
+        .order_by('exercicio__ano')
+    )
+    if anos_fechados:
+        lista = ', '.join(str(a) for a in anos_fechados)
+        return json_error(
+            f'Não é possível excluir: o centro de custo tem orçamento em exercício fechado ({lista}). '
             'Desative-o para que ele não apareça em novos cadastros.'
         )
 
     nome = centro.nome
-    centro.delete()
+    with transaction.atomic():
+        centro.orcamentos.all().delete()  # só sobram orçamentos de exercícios abertos
+        centro.delete()
+
     return JsonResponse({'detail': f'Centro de custo "{nome}" foi removido.'})

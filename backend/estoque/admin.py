@@ -1,22 +1,19 @@
 from django.contrib import admin
-from .models import Categoria, Equipamento
+from .models import Consumivel, MovimentacaoConsumivel
 
-# A Categoria pode continuar simples, pois tem poucos campos
-admin.site.register(Categoria)
+@admin.register(Consumivel)
+class ConsumivelAdmin(admin.ModelAdmin):
+    # Usando os nomes exatos das colunas do nosso novo models.py
+    list_display = ('nome', 'quantidade_atual', 'unidade_medida', 'estoque_minimo')
+    search_fields = ('nome',)
+    list_filter = ('unidade_medida',)
+    
+    # Se quiser editar direto na tela do painel Admin:
+    list_editable = ('quantidade_atual', 'estoque_minimo')
 
-@admin.register(Equipamento)
-class EquipamentoAdmin(admin.ModelAdmin):
-    # Colunas na tabela (fica muito mais fácil bater o olho e achar o que precisa)
-    list_display = ('nome', 'num_patrimonio', 'status', 'responsavel', 'centro_de_custo', 'valor_atual_contabil')
-    
-    # Como o valor contábil é calculado, ele precisa ser "somente leitura" no formulário
-    readonly_fields = ('valor_atual_contabil',)
-        
-    # Filtros laterais (O coração do sistema! Filtra por quebrado, em uso, categoria...)
-    list_filter = ('status', 'categoria')
-    
-    # Barra de pesquisa (Digitar a tag do equipamento e achar na hora)
-    search_fields = ('nome', 'num_patrimonio')
-    
-    # Dica extra: Permite editar o status direto na tela de lista, sem precisar abrir o item
-    list_editable = ('status',)
+@admin.register(MovimentacaoConsumivel)
+class MovimentacaoConsumivelAdmin(admin.ModelAdmin):
+    list_display = ('consumivel', 'tipo', 'quantidade', 'data', 'responsavel')
+    list_filter = ('tipo', 'data')
+    search_fields = ('consumivel__nome', 'responsavel')
+    date_hierarchy = 'data'

@@ -4,8 +4,8 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from api.serializers import serialize_trash_item
 from api.utils import api_login_required, json_error
-from consumiveis.models import Consumivel
-from estoque.models import Equipamento
+from estoque.models import Consumivel
+from patrimonio.models import Equipamento
 from rh.models import Colaborador
 
 

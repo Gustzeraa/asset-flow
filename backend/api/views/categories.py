@@ -6,8 +6,8 @@ from django.views.decorators.http import require_http_methods
 
 from api.serializers import serialize_category
 from api.utils import api_login_required, form_errors, json_error, post_or_json
-from estoque.forms import CategoriaForm
-from estoque.models import Categoria
+from patrimonio.forms import CategoriaForm
+from patrimonio.models import Categoria
 
 
 @require_http_methods(['GET', 'POST'])

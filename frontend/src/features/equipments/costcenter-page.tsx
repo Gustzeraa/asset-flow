@@ -165,8 +165,8 @@ export function CentrosCustoPage() {
       title: 'Excluir Centro de Custo',
       children: (
         <Text size="sm">
-          Deseja excluir "{item.nome}"? Só é possível excluir centros de custo sem equipamentos ou orçamentos
-          vinculados. Se ele já tiver histórico, desative-o pela edição.
+          Deseja excluir "{item.nome}"? Os orçamentos de exercícios abertos serão apagados junto.
+          Centros com equipamentos vinculados não podem ser excluídos.
         </Text>
       ),
       labels: { confirm: 'Excluir', cancel: 'Cancelar' },

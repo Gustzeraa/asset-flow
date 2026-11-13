@@ -25,6 +25,7 @@ import { apiFetch, downloadFile, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons } from '@/lib/app-icons'
 import type { Equipment } from '@/types/domain'
+import { ConciliacaoImportModal } from './conciliacao-import-modal'
 
 type EquipmentListResponse = {
   items: Equipment[]
@@ -86,6 +87,8 @@ export function ControleContabilPage() {
   const [exportAno, setExportAno] = useState<string>('')
   const [exportCentroCusto, setExportCentroCusto] = useState<string>('')
 
+  const [conciliacaoOpened, setConciliacaoOpened] = useState(false)
+
   // NOVO: Hook para buscar os anos disponíveis na nova API financeira
   const { data: anosData, isLoading: carregandoAnos } = useAsyncData(
     () => apiFetch<{ anos_disponiveis: string[] }>(`/api/finance/years/?centro_custo_id=${exportCentroCusto || ''}`),
@@ -98,8 +101,8 @@ export function ControleContabilPage() {
     if (deferredSearch) params.set('search', deferredSearch)
     if (centroCustoFiltro) params.set('centro_custo', centroCustoFiltro)
     if (categoriaFiltro) params.set('categoria', categoriaFiltro)
-    if (dataInicial) params.set('data_inicial', dataInicial)
-    if (dataFinal) params.set('data_final', dataFinal)
+    if (dataInicial) params.set('data_compra_inicial', dataInicial)
+    if (dataFinal) params.set('data_compra_final', dataFinal)
     params.set('ordering', '-valor_compra')
     return params.toString()
   }, [deferredSearch, centroCustoFiltro, categoriaFiltro, dataInicial, dataFinal])
@@ -212,9 +215,12 @@ export function ControleContabilPage() {
         />
 
         {/* ========================================== */}
-        {/* BOTÃO DE EXPORTAÇÃO                        */}
+        {/* Botões de Importação e Exportação          */}
         {/* ========================================== */}
         <Group justify="flex-end">
+          <AppButton variant="light" onClick={() => setConciliacaoOpened(true)}>
+            Conciliação por planilha
+          </AppButton>
           <AppButton leftSection={<ExportIcon size={14} />} onClick={() => setExportModalOpened(true)} variant="light">
             Exportar Fechamento
           </AppButton>
@@ -275,7 +281,7 @@ export function ControleContabilPage() {
               <AppButton size="sm" variant="outline" onClick={() => setSelectedIds([])}>
                 Cancelar seleção
               </AppButton>
-              <AppButton size="sm" leftSection={<BulkIcon size={14}/>} onClick={() => setBulkModalOpened(true)}>
+              <AppButton size="sm" leftSection={<BulkIcon size={14} />} onClick={() => setBulkModalOpened(true)}>
                 Alterar Centro de Custo em Lote
               </AppButton>
             </Group>
@@ -308,16 +314,16 @@ export function ControleContabilPage() {
                 width: 280, // Aumentei um pouco a largura para caber a foto
                 render: (item) => (
                   <Group wrap="nowrap" gap="sm">
-                    <Avatar 
-                      src={item.foto_url} 
-                      radius="md" 
-                      size={42} 
+                    <Avatar
+                      src={item.foto_url}
+                      radius="md"
+                      size={42}
                       color="brand"
                     >
                       {/* Se não tiver foto, ele mostra a primeira letra do nome do equipamento */}
                       {item.nome.charAt(0).toUpperCase()}
                     </Avatar>
-                    
+
                     <Stack gap={0} className="min-w-0 flex-1">
                       <Text fw={700} className="truncate">{item.num_patrimonio}</Text>
                       <Text c="dimmed" size="xs" className="truncate">{item.nome}</Text>
@@ -366,7 +372,7 @@ export function ControleContabilPage() {
                       <Text size="sm" fw={700} c={atual > 0 && atual < original ? 'green.7' : 'dark'}>
                         {formatarDinheiro(atual)}
                       </Text>
-                      
+
                       {/* Subtítulo vermelho mostrando quanto já perdeu de valor */}
                       {depreciado > 0 && (
                         <Text size="xs" c="red.6" fw={500} title="Valor depreciado">
@@ -443,7 +449,7 @@ export function ControleContabilPage() {
         <form onSubmit={handleBulkSubmit}>
           <Stack gap="md">
             <Text size="sm">Você está atualizando <b>{selectedIds.length} equipamentos</b>.</Text>
-            
+
             <Select
               label="Novo Centro de Custo"
               description="Deixe em branco se quiser remover os equipamentos do centro de custo atual."
@@ -506,6 +512,12 @@ export function ControleContabilPage() {
           </Group>
         </Stack>
       </AppModal>
+
+      <ConciliacaoImportModal
+        opened={conciliacaoOpened}
+        onClose={() => setConciliacaoOpened(false)}
+        onImported={reload} // a função que recarrega a lista da conciliação
+      />
     </>
   )
 }

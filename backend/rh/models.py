@@ -8,16 +8,14 @@ class Departamento(models.Model):
 
 class Colaborador(models.Model):
     nome = models.CharField(max_length=150)
-    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True, verbose_name="CPF")
+    cpf = models.CharField(max_length=14, unique=True, verbose_name="CPF")
     cargo = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     
     # MODIFICADO: Agora é uma ForeignKey apontando para a nova tabela
     departamento = models.ForeignKey(
         Departamento, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        on_delete=models.PROTECT, 
         related_name='colaboradores'
     )
     
@@ -35,7 +33,7 @@ class TermoResponsabilidade(models.Model):
         related_name='termos_assinados'
     )
     equipamentos = models.ManyToManyField(
-        'estoque.Equipamento', 
+        'patrimonio.Equipamento', 
         related_name='termos'
     )
     data_emissao = models.DateTimeField(auto_now_add=True)

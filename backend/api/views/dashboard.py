@@ -6,8 +6,8 @@ from decimal import Decimal
 
 from api.serializers import serialize_dashboard_payload
 from api.utils import api_login_required
-from consumiveis.models import Consumivel, MovimentacaoConsumivel
-from estoque.models import Equipamento
+from estoque.models import Consumivel, MovimentacaoConsumivel
+from patrimonio.models import Equipamento
 from rh.models import Colaborador
 
 

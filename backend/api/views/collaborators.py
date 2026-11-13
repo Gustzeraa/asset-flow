@@ -9,7 +9,7 @@ from xhtml2pdf import pisa
 
 from api.serializers import serialize_collaborator
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json
-from estoque.models import Equipamento
+from patrimonio.models import Equipamento
 from rh.forms import ColaboradorForm
 from rh.models import Colaborador, TermoResponsabilidade
 
