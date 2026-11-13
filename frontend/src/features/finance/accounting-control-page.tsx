@@ -25,7 +25,7 @@ import { apiFetch, downloadFile, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons } from '@/lib/app-icons'
 import type { Equipment } from '@/types/domain'
-import { ConciliacaoImportModal } from './conciliacao-import-modal'
+import { ConciliacaoImportModal } from './conciliation-import-modal'
 
 type EquipmentListResponse = {
   items: Equipment[]
@@ -366,14 +366,28 @@ export function ControleContabilPage() {
                   const atual = Number(item.valor_atual_contabil) || 0
                   const depreciado = original - atual
 
+                  if (original === 0) {
+                    return <Text size="sm" c="dimmed">-</Text>
+                  }
+
+                  if (atual <= 0) {
+                    return (
+                      <Stack gap={2}>
+                        <Text size="sm" fw={700}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(0)}
+                        </Text>
+                        <Badge color="gray" variant="light" size="xs">
+                          Totalmente depreciado
+                        </Badge>
+                      </Stack>
+                    )
+                  }
+
                   return (
                     <Stack gap={0}>
-                      {/* O valor atual do bem */}
-                      <Text size="sm" fw={700} c={atual > 0 && atual < original ? 'green.7' : 'dark'}>
+                      <Text size="sm" fw={700} c={atual < original ? 'green.7' : 'dark'}>
                         {formatarDinheiro(atual)}
                       </Text>
-
-                      {/* Subtítulo vermelho mostrando quanto já perdeu de valor */}
                       {depreciado > 0 && (
                         <Text size="xs" c="red.6" fw={500} title="Valor depreciado">
                           - {formatarDinheiro(depreciado)}

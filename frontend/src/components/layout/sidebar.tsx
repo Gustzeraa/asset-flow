@@ -16,35 +16,42 @@ type MenuItem = {
 
 const items: MenuItem[] = [
   { label: 'Dashboard', description: 'Indicadores executivos', to: '/dashboard', icon: screenIcons.dashboard },
-  
-  { 
-    label: 'Equipamentos', 
-    description: 'Ativos e inventário', 
+
+  {
+    label: 'Equipamentos',
+    description: 'Ativos e inventário',
     icon: screenIcons.equipments,
     children: [
       { label: 'Lista de Equipamentos', to: '/equipamentos' },
-      { label: 'Controle Contábil', to: '/controle-contabil' }, // A próxima tela que vamos criar
-      { label: 'Centros de Custo', to: '/centros-custo' }, // A tela que acabamos de criar!
-      { label: 'Categorias', to: '/categorias' }
-    ]
+      { label: 'Categorias', to: '/categorias' },
+    ],
   },
-  { 
-    label: 'Colaboradores', 
-    description: 'RH e responsabilidades', 
+  {
+    label: 'Financeiro',
+    description: 'Contabilidade e orçamento',
+    icon: screenIcons.categories,
+    children: [
+      { label: 'Controle Contábil', to: '/controle-contabil' },
+      { label: 'Centros de Custo', to: '/centros-custo' },
+    ],
+  },
+  {
+    label: 'Colaboradores',
+    description: 'RH e responsabilidades',
     icon: screenIcons.collaborators,
     children: [
       { label: 'Lista de Colaboradores', to: '/colaboradores' },
-      { label: 'Departamentos', to: '/departamentos' }
-    ]
+      { label: 'Departamentos', to: '/departamentos' },
+    ],
   },
-  { 
-    label: 'Consumíveis', 
-    description: 'Almoxarifado e estoque', 
+  {
+    label: 'Estoque',
+    description: 'Almoxarifado e consumíveis',
     icon: screenIcons.consumables,
     children: [
       { label: 'Estoque Atual', to: '/consumiveis' },
-      { label: 'Movimentações', to: '/historico' }
-    ]
+      { label: 'Movimentações', to: '/historico' },
+    ],
   },
 ]
 

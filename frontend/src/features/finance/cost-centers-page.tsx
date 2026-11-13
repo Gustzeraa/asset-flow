@@ -25,7 +25,7 @@ import { useAsyncData } from '@/hooks/use-async-data'
 import { apiFetch, getApiErrorMessage } from '@/lib/api'
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons } from '@/lib/app-icons'
-import { CentroCustoImportModal } from './centrocusto-import-page'
+import { CentroCustoImportModal } from './cost-center-import-modal'
 import type { CentroCusto } from '@/types/domain'
 
 type CentroCustoFormState = {

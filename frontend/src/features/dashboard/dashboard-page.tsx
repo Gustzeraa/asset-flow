@@ -5,8 +5,8 @@ import { screenIcons } from '@/lib/app-icons'
 import { useAuth } from '@/app/auth-context' // Ajuste o caminho se necessário
 
 // Importe os dois novos componentes que criamos
-import { OperationalPanel } from './OperationalPanel'
-import { FinancePanel } from './FinancePanel'
+import { OperationalPanel } from './operational-panel'
+import { FinancePanel } from './finance-panel'
 
 export function DashboardPage() {
   const { user } = useAuth()

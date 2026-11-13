@@ -30,7 +30,7 @@ import { apiFetch, getApiErrorMessage, downloadFile, getMediaUrl } from '@/lib/a
 import { appFeedback } from '@/lib/feedback'
 import { actionIcons, screenIcons, sectionIcons } from '@/lib/app-icons'
 import type { Collaborator } from '@/types/domain'
-import { ColaboradorImportModal } from './colaborador-import-modal'
+import { ColaboradorImportModal } from './collaborator-import-modal'
 
 type CollaboratorsResponse = {
   items: Collaborator[]
