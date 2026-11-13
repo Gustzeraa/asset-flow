@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class EstoqueConfig(AppConfig):
+class ConsumiveisConfig(AppConfig):
     name = 'estoque'

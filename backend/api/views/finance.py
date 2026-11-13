@@ -8,9 +8,9 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_GET, require_POST
 
 from api.utils import api_login_required, int_list, json_error, request_data
-from estoque.models import Equipamento
-from patrimonio.models import ExercicioFiscal
-from patrimonio.services import anos_fechados, parse_valor, sincronizar_exercicios
+from patrimonio.models import Equipamento
+from financeiro.models import ExercicioFiscal
+from financeiro.services import anos_fechados, parse_valor, sincronizar_exercicios
 
 LIMITE_VALOR_COMPRA = Decimal('10') ** 8  # valor_compra: max_digits=10, decimal_places=2
 

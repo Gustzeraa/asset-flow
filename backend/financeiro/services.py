@@ -1,10 +1,10 @@
-# patrimonio/services.py
+# financeiro/services.py
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.db.models import Sum
 
-from patrimonio.models import ExercicioFiscal, OrcamentoCentroCusto
+from financeiro.models import ExercicioFiscal, OrcamentoCentroCusto
 
 
 class ExercicioFechadoError(Exception):
@@ -44,7 +44,7 @@ def parse_valor(valor):
 
 def sincronizar_exercicios():
     """Garante um exercício para o ano atual e para cada ano com equipamento comprado."""
-    from estoque.models import Equipamento
+    from patrimonio.models import Equipamento
 
     anos = set(
         Equipamento.objects.filter(excluido=False, data_compra__isnull=False)
@@ -60,7 +60,7 @@ def sincronizar_exercicios():
 
 def gastos_por_centro(ano):
     """{centro_id: total} das compras do ano (pela data_compra)."""
-    from estoque.models import Equipamento
+    from patrimonio.models import Equipamento
 
     linhas = (
         Equipamento.objects.filter(excluido=False, data_compra__year=ano, centro_de_custo__isnull=False)

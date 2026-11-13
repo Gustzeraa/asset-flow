@@ -1,23 +1,22 @@
 from django.contrib import admin
+from .models import Categoria, Equipamento
 
-from .models import CentroDeCusto, ExercicioFiscal, OrcamentoCentroCusto
+# A Categoria pode continuar simples, pois tem poucos campos
+admin.site.register(Categoria)
 
-
-@admin.register(CentroDeCusto)
-class CentroDeCustoAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nome', 'ativo')
-    list_filter = ('ativo',)
-    search_fields = ('codigo', 'nome')
-
-
-@admin.register(ExercicioFiscal)
-class ExercicioFiscalAdmin(admin.ModelAdmin):
-    list_display = ('ano', 'fechado')
-    list_editable = ('fechado',)
-
-
-@admin.register(OrcamentoCentroCusto)
-class OrcamentoCentroCustoAdmin(admin.ModelAdmin):
-    list_display = ('centro_custo', 'exercicio', 'valor')
-    list_filter = ('exercicio',)
-    search_fields = ('centro_custo__codigo', 'centro_custo__nome')
+@admin.register(Equipamento)
+class EquipamentoAdmin(admin.ModelAdmin):
+    # Colunas na tabela (fica muito mais fácil bater o olho e achar o que precisa)
+    list_display = ('nome', 'num_patrimonio', 'status', 'responsavel', 'centro_de_custo', 'valor_atual_contabil')
+    
+    # Como o valor contábil é calculado, ele precisa ser "somente leitura" no formulário
+    readonly_fields = ('valor_atual_contabil',)
+        
+    # Filtros laterais (O coração do sistema! Filtra por quebrado, em uso, categoria...)
+    list_filter = ('status', 'categoria')
+    
+    # Barra de pesquisa (Digitar a tag do equipamento e achar na hora)
+    search_fields = ('nome', 'num_patrimonio')
+    
+    # Dica extra: Permite editar o status direto na tela de lista, sem precisar abrir o item
+    list_editable = ('status',)

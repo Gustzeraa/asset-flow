@@ -1,5 +1,5 @@
-from consumiveis.models import Consumivel, MovimentacaoConsumivel
-from estoque.models import Categoria, Equipamento
+from estoque.models import Consumivel, MovimentacaoConsumivel
+from patrimonio.models import Categoria, Equipamento
 from rh.models import Colaborador, Departamento
 from datetime import date
 from decimal import Decimal
@@ -155,7 +155,7 @@ def serialize_consumable(consumable):
         'quantidade_atual': consumable.quantidade_atual,
         'estoque_minimo': consumable.estoque_minimo,
         'descricao': consumable.descricao,
-        'estoque_baixo': consumable.quantidade_atual <= consumable.estoque_minimo,
+        'patrimonio_baixo': consumable.quantidade_atual <= consumable.estoque_minimo,
         'excluido': consumable.excluido,
     }
 
@@ -239,7 +239,7 @@ def serialize_lookups_payload(categories=None, collaborators=None, departments=N
 def serialize_centro_custo(centro, request=None, contexto=None):
     """
     Sem contexto: só os dados do cadastro (seguro para usar em listas de equipamentos etc.).
-    Com contexto (de patrimonio.services.montar_contexto_financeiro): inclui orçamento e gasto do ano.
+    Com contexto (de financeiro.services.montar_contexto_financeiro): inclui orçamento e gasto do ano.
     """
     if not centro:
         return None

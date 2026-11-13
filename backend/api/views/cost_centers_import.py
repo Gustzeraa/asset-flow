@@ -1,6 +1,4 @@
-import csv
 import io
-import unicodedata
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -8,9 +6,10 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 from openpyxl import Workbook, load_workbook
 
+from api.planilhas import ler_linhas as _ler_linhas, normalizar_cabecalho as _normalizar_cabecalho, texto as _texto
 from api.utils import api_login_required
-from patrimonio.models import CentroDeCusto, ExercicioFiscal, OrcamentoCentroCusto
-from patrimonio.services import ano_do_valor, parse_valor
+from financeiro.models import CentroDeCusto, ExercicioFiscal, OrcamentoCentroCusto
+from financeiro.services import ano_do_valor, parse_valor
 
 MAX_TAMANHO_ARQUIVO = 5 * 1024 * 1024  # 5 MB
 MAX_LINHAS = 5000
@@ -24,47 +23,6 @@ ALIASES_COLUNAS = {
     'orcamento_anual': 'orcamento_anual',
     'orcamento': 'orcamento_anual',
 }
-
-
-def _normalizar_cabecalho(valor):
-    texto = str(valor or '').strip().lower()
-    texto = unicodedata.normalize('NFKD', texto).encode('ascii', 'ignore').decode()
-    return '_'.join(texto.replace('-', ' ').split())
-
-
-def _ler_linhas(arquivo):
-    """Retorna uma lista de linhas (a primeira é o cabeçalho)."""
-    nome = arquivo.name.lower()
-
-    if nome.endswith('.xlsx'):
-        wb = load_workbook(arquivo, read_only=True, data_only=True)
-        ws = wb.active
-        linhas = [list(linha) for linha in ws.iter_rows(values_only=True)]
-        wb.close()
-        return linhas
-
-    if nome.endswith('.csv'):
-        conteudo = arquivo.read()
-        try:
-            texto = conteudo.decode('utf-8-sig')
-        except UnicodeDecodeError:
-            texto = conteudo.decode('latin-1')  # CSV salvo pelo Excel em Windows
-        try:
-            dialeto = csv.Sniffer().sniff(texto[:2048], delimiters=';,')
-        except csv.Error:
-            class dialeto(csv.excel):  # padrão do Excel em pt-BR
-                delimiter = ';'
-        return [linha for linha in csv.reader(io.StringIO(texto), dialeto)]
-
-    raise ValueError('Formato não suportado. Envie um arquivo .xlsx ou .csv.')
-
-
-def _texto(valor):
-    if valor is None:
-        return ''
-    if isinstance(valor, float) and valor.is_integer():
-        valor = int(valor)  # Excel transforma "101" em 101.0
-    return str(valor).strip()
 
 
 @require_POST

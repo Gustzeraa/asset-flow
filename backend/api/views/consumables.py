@@ -5,8 +5,8 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from api.serializers import serialize_consumable, serialize_movement
 from api.utils import api_login_required, form_errors, int_list, json_error, post_or_json
-from consumiveis.forms import ConsumivelForm, MovimentacaoForm
-from consumiveis.models import Consumivel, MovimentacaoConsumivel
+from estoque.forms import ConsumivelForm, MovimentacaoForm
+from estoque.models import Consumivel, MovimentacaoConsumivel
 import csv
 from django.http import HttpResponse
 
@@ -45,7 +45,7 @@ def consumables_collection(request):
 
         summary = {
             'total': consumables.count(),
-            'estoque_baixo': consumables.filter(quantidade_atual__lte=0).count(),
+            'patrimonio_baixo': consumables.filter(quantidade_atual__lte=0).count(),
             'alertas': sum(1 for item in consumables if item.quantidade_atual <= item.estoque_minimo),
         }
         return JsonResponse({'items': [serialize_consumable(item) for item in consumables], 'summary': summary})
@@ -163,7 +163,7 @@ def export_movements(request):
 @api_login_required
 def bulk_trash(request):
     data = post_or_json(request)
-    ids = int_list(data, 'ids', 'consumiveis_ids', 'consumable_ids')
+    ids = int_list(data, 'ids', 'consumivel_ids', 'consumable_ids')
     if not ids:
         return json_error('Nenhum item foi selecionado.')
 

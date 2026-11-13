@@ -14,6 +14,8 @@ from .views import cost_centers
 from .views import finance
 from .views import cost_centers
 from .views import cost_centers_import
+from .views import finance_conciliacao
+from .views import collaborators_import
 
 urlpatterns = [
     # ==========================================
@@ -76,6 +78,8 @@ urlpatterns = [
     path('collaborators/<int:collaborator_id>/upload-term/', collaborators.upload_signed_term, name='api_collaborator_upload_term'),
     path('collaborators/<int:collaborator_id>/term/<int:term_id>/delete/', collaborators.delete_signed_term, name='api_collaborator_delete_term'),
     path('collaborators/<int:collaborator_id>/trash/', collaborators.trash_collaborator, name='api_collaborator_trash'),
+    path('collaborators/import/', collaborators_import.importar_colaboradores, name='api_collaborators_import'),
+    path('collaborators/import/template/', collaborators_import.modelo_importacao_colaboradores, name='api_collaborators_import_template'),
 
     # ==========================================
     # Rotas de Consumíveis (Almoxarifado)
@@ -109,4 +113,6 @@ urlpatterns = [
     path('cost-centers/import/template/', cost_centers_import.modelo_importacao_centros_custo, name='api_cost_centers_import_template'),
     path('cost-centers/<int:centro_id>/', cost_centers.detail, name='cost_center_detail'),
     path('cost-centers/<int:centro_id>/trash/', cost_centers.trash, name='cost_center_trash'),
+    path('finance/conciliacao/export/', finance_conciliacao.export_conciliacao, name='api_finance_conciliacao_export'),
+    path('finance/conciliacao/import/', finance_conciliacao.import_conciliacao, name='api_finance_conciliacao_import'),
 ]
