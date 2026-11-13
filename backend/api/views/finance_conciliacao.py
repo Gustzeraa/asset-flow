@@ -19,10 +19,10 @@ MAX_LINHAS = 5000
 LIMITE_VALOR_COMPRA = Decimal('10') ** 8  # valor_compra: max_digits=10, decimal_places=2
 
 ALIASES_COLUNAS = {
-    'financeiro': 'financeiro',
-    'num_patrimonio': 'financeiro',
-    'numero_do_financeiro': 'financeiro',
-    'n_financeiro': 'financeiro',
+    'patrimonio': 'patrimonio',
+    'num_patrimonio': 'patrimonio',
+    'numero_do_patrimonio': 'patrimonio',
+    'n_patrimonio': 'patrimonio',
     'codigo_do_centro_de_custo': 'cc',
     'codigo_centro_de_custo': 'cc',
     'centro_de_custo': 'cc',
@@ -161,21 +161,21 @@ def import_conciliacao(request):
         return JsonResponse({'detail': f'Limite de {MAX_LINHAS} linhas por importação.'}, status=400)
 
     mapa = mapear_colunas(linhas[0], ALIASES_COLUNAS)
-    if 'financeiro' not in mapa.values():
+    if 'patrimonio' not in mapa.values():
         return JsonResponse({'detail': 'Coluna "Patrimônio" não encontrada. Use a planilha exportada.'}, status=400)
-    if len(set(mapa.values()) - {'financeiro'}) == 0:
+    if len(set(mapa.values()) - {'patrimonio'}) == 0:
         return JsonResponse({'detail': 'Nenhuma coluna contábil encontrada na planilha.'}, status=400)
 
     # Carrega tudo de uma vez (evita uma consulta por linha)
-    financeiros = {
+    patrimonios = {
         texto(linha[i])
         for linha in linhas[1:]
         for i, campo in mapa.items()
-        if campo == 'financeiro' and i < len(linha)
+        if campo == 'patrimonio' and i < len(linha)
     }
     equipamentos = {
         eq.num_patrimonio: eq
-        for eq in Equipamento.objects.filter(num_patrimonio__in=financeiros, excluido=False)
+        for eq in Equipamento.objects.filter(num_patrimonio__in=patrimonios, excluido=False)
     }
     centros = {c.codigo.upper(): c for c in CentroDeCusto.objects.all()}
 
@@ -187,19 +187,19 @@ def import_conciliacao(request):
 
     for numero_linha, linha in enumerate(linhas[1:], start=2):
         dados = {campo: (linha[i] if i < len(linha) else None) for i, campo in mapa.items()}
-        financeiro = texto(dados.get('financeiro'))
+        patrimonio = texto(dados.get('patrimonio'))
 
-        if not financeiro:
+        if not patrimonio:
             erros.append({'linha': numero_linha, 'erro': 'Patrimônio vazio.'})
             continue
-        if financeiro in vistos:
-            erros.append({'linha': numero_linha, 'erro': f'Patrimônio "{financeiro}" repetido na planilha.'})
+        if patrimonio in vistos:
+            erros.append({'linha': numero_linha, 'erro': f'Patrimônio "{patrimonio}" repetido na planilha.'})
             continue
-        vistos.add(financeiro)
+        vistos.add(patrimonio)
 
-        eq = equipamentos.get(financeiro)
+        eq = equipamentos.get(patrimonio)
         if eq is None:
-            erros.append({'linha': numero_linha, 'erro': f'Patrimônio "{financeiro}" não encontrado (ou está na lixeira).'})
+            erros.append({'linha': numero_linha, 'erro': f'Patrimônio "{patrimonio}" não encontrado (ou está na lixeira).'})
             continue
 
         novo_cc_id = eq.centro_de_custo_id
